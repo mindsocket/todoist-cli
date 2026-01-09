@@ -18,6 +18,8 @@ interface ListOptions extends TaskListOptions {
   label?: string
   assignee?: string
   unassigned?: boolean
+  workspace?: string
+  personal?: boolean
 }
 
 interface ViewOptions {
@@ -240,6 +242,8 @@ export function registerTaskCommand(program: Command): void {
     .option('--filter <query>', 'Raw Todoist filter query')
     .option('--assignee <ref>', 'Filter by assignee (me or id:xxx)')
     .option('--unassigned', 'Show only unassigned tasks')
+    .option('--workspace <name>', 'Filter to tasks in workspace')
+    .option('--personal', 'Filter to tasks in personal projects')
     .option('--limit <n>', 'Limit number of results (default: 300)')
     .option('--cursor <cursor>', 'Continue from cursor')
     .option('--all', 'Fetch all results (no limit)')

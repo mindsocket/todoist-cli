@@ -1,9 +1,10 @@
 import { Command } from 'commander'
-import { getApi, getCurrentUserId, type Project } from '../lib/api.js'
-import { formatTaskRow, formatPaginatedJson, formatPaginatedNdjson, formatNextCursorFooter } from '../lib/output.js'
+import { getApi, getCurrentUserId, isWorkspaceProject, type Project } from '../lib/api.js'
+import { formatTaskRow, formatPaginatedJson, formatPaginatedNdjson, formatNextCursorFooter, formatError } from '../lib/output.js'
 import { paginate, LIMITS } from '../lib/pagination.js'
 import { getLocalDate } from '../lib/dates.js'
 import { CollaboratorCache, formatAssignee } from '../lib/collaborators.js'
+import { resolveWorkspaceRef } from '../lib/refs.js'
 import chalk from 'chalk'
 
 interface TodayOptions {
@@ -11,6 +12,8 @@ interface TodayOptions {
   cursor?: string
   all?: boolean
   anyAssignee?: boolean
+  workspace?: string
+  personal?: boolean
   json?: boolean
   ndjson?: boolean
   full?: boolean
@@ -24,6 +27,8 @@ export function registerTodayCommand(program: Command): void {
     .option('--cursor <cursor>', 'Continue from cursor')
     .option('--all', 'Fetch all results (no limit)')
     .option('--any-assignee', 'Show tasks assigned to anyone (default: only me/unassigned)')
+    .option('--workspace <name>', 'Filter to tasks in workspace')
+    .option('--personal', 'Filter to tasks in personal projects')
     .option('--json', 'Output as JSON')
     .option('--ndjson', 'Output as newline-delimited JSON')
     .option('--full', 'Include all fields in JSON output')
@@ -49,6 +54,30 @@ export function registerTodayCommand(program: Command): void {
         filteredTasks = tasks.filter(
           (t) => !t.responsibleUid || t.responsibleUid === currentUserId
         )
+      }
+
+      if (options.workspace && options.personal) {
+        throw new Error(
+          formatError('CONFLICTING_FILTERS', '--workspace and --personal are mutually exclusive.')
+        )
+      }
+
+      if (options.workspace || options.personal) {
+        const { results: allProjects } = await api.getProjects()
+        const projectsMap = new Map(allProjects.map((p) => [p.id, p]))
+
+        if (options.workspace) {
+          const workspace = await resolveWorkspaceRef(options.workspace)
+          filteredTasks = filteredTasks.filter((t) => {
+            const project = projectsMap.get(t.projectId)
+            return project && isWorkspaceProject(project) && project.workspaceId === workspace.id
+          })
+        } else if (options.personal) {
+          filteredTasks = filteredTasks.filter((t) => {
+            const project = projectsMap.get(t.projectId)
+            return project && !isWorkspaceProject(project)
+          })
+        }
       }
 
       const overdue = filteredTasks.filter((t) => t.due && t.due.date < today)

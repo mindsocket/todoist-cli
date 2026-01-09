@@ -353,6 +353,24 @@ describe('project list grouping', () => {
     const zebraIndex = calls.findIndex((c: string) => c.includes('Zebra Corp'))
     expect(alphaIndex).toBeLessThan(zebraIndex)
   })
+
+  it('filters by --personal to show only personal projects', async () => {
+    const program = createProgram()
+
+    mockApi.getProjects.mockResolvedValue({
+      results: [
+        { id: 'proj-1', name: 'Personal Project', isFavorite: false },
+        { id: 'proj-2', name: 'Workspace Project', isFavorite: false, workspaceId: 'ws-1' },
+      ],
+      nextCursor: null,
+    })
+
+    await program.parseAsync(['node', 'td', 'project', 'list', '--personal'])
+
+    const calls = consoleSpy.mock.calls.map((c: unknown[]) => c[0] as string)
+    expect(calls.some((c: string) => c.includes('Personal Project'))).toBe(true)
+    expect(calls.some((c: string) => c.includes('Workspace Project'))).toBe(false)
+  })
 })
 
 describe('project collaborators', () => {

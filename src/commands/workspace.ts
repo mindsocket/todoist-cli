@@ -5,11 +5,9 @@ import {
   fetchWorkspaces,
   fetchWorkspaceFolders,
   isWorkspaceProject,
-  type Workspace,
   type WorkspaceFolder,
 } from '../lib/api.js'
-import { formatError } from '../lib/output.js'
-import { isIdRef, extractId } from '../lib/refs.js'
+import { resolveWorkspaceRef } from '../lib/refs.js'
 import { paginate, LIMITS } from '../lib/pagination.js'
 
 interface ListOptions {
@@ -35,37 +33,6 @@ interface ProjectsOptions {
   json?: boolean
   ndjson?: boolean
   full?: boolean
-}
-
-async function resolveWorkspaceRef(ref: string): Promise<Workspace> {
-  const workspaces = await fetchWorkspaces()
-
-  if (isIdRef(ref)) {
-    const id = extractId(ref)
-    const workspace = workspaces.find((w) => w.id === id)
-    if (!workspace) {
-      throw new Error(formatError('WORKSPACE_NOT_FOUND', `Workspace id:${id} not found.`))
-    }
-    return workspace
-  }
-
-  const lower = ref.toLowerCase()
-  const exact = workspaces.find((w) => w.name.toLowerCase() === lower)
-  if (exact) return exact
-
-  const partial = workspaces.filter((w) => w.name.toLowerCase().includes(lower))
-  if (partial.length === 1) return partial[0]
-  if (partial.length > 1) {
-    throw new Error(
-      formatError(
-        'AMBIGUOUS_WORKSPACE',
-        `Multiple workspaces match "${ref}":`,
-        partial.slice(0, 5).map((w) => `"${w.name}" (id:${w.id})`)
-      )
-    )
-  }
-
-  throw new Error(formatError('WORKSPACE_NOT_FOUND', `Workspace "${ref}" not found.`))
 }
 
 async function listWorkspaces(options: ListOptions): Promise<void> {

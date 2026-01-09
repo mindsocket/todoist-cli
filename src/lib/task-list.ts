@@ -1,4 +1,5 @@
-import { getApi, getCurrentUserId, type Project, type Section } from './api.js'
+import { getApi, getCurrentUserId, isWorkspaceProject, type Project, type Section } from './api.js'
+import { resolveWorkspaceRef } from './refs.js'
 import { formatTaskRow, formatPaginatedJson, formatPaginatedNdjson, formatNextCursorFooter, formatError } from './output.js'
 import { paginate, LIMITS } from './pagination.js'
 import { CollaboratorCache, formatAssignee } from './collaborators.js'
@@ -13,6 +14,8 @@ export interface TaskListOptions {
   parent?: string
   assignee?: string
   unassigned?: boolean
+  workspace?: string
+  personal?: boolean
   limit?: string
   cursor?: string
   all?: boolean
@@ -171,6 +174,30 @@ export async function listTasksForProject(
       )
     }
     filtered = filtered.filter((t) => t.responsibleUid === assigneeId)
+  }
+
+  if (options.workspace && options.personal) {
+    throw new Error(
+      formatError('CONFLICTING_FILTERS', '--workspace and --personal are mutually exclusive.')
+    )
+  }
+
+  if (options.workspace || options.personal) {
+    const { results: allProjects } = await api.getProjects()
+    const projectsMap = new Map(allProjects.map((p) => [p.id, p]))
+
+    if (options.workspace) {
+      const workspace = await resolveWorkspaceRef(options.workspace)
+      filtered = filtered.filter((t) => {
+        const project = projectsMap.get(t.projectId)
+        return project && isWorkspaceProject(project) && project.workspaceId === workspace.id
+      })
+    } else if (options.personal) {
+      filtered = filtered.filter((t) => {
+        const project = projectsMap.get(t.projectId)
+        return project && !isWorkspaceProject(project)
+      })
+    }
   }
 
   if (options.json) {

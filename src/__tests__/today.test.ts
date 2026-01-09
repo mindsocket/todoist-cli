@@ -1,16 +1,21 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { Command } from 'commander'
 
-vi.mock('../lib/api.js', () => ({
-  getApi: vi.fn(),
-  getCurrentUserId: vi.fn().mockResolvedValue('current-user-123'),
-  isWorkspaceProject: vi.fn().mockReturnValue(false),
-}))
+vi.mock('../lib/api.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/api.js')>()
+  return {
+    ...actual,
+    getApi: vi.fn(),
+    getCurrentUserId: vi.fn().mockResolvedValue('current-user-123'),
+    fetchWorkspaces: vi.fn().mockResolvedValue([]),
+  }
+})
 
-import { getApi } from '../lib/api.js'
+import { getApi, fetchWorkspaces } from '../lib/api.js'
 import { registerTodayCommand } from '../commands/today.js'
 
 const mockGetApi = vi.mocked(getApi)
+const mockFetchWorkspaces = vi.mocked(fetchWorkspaces)
 
 function createMockApi() {
   return {
@@ -172,5 +177,64 @@ describe('today command', () => {
     await program.parseAsync(['node', 'td', 'today'])
 
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Work'))
+  })
+
+  it('filters by --personal to show only personal project tasks', async () => {
+    const program = createProgram()
+
+    mockApi.getTasks.mockResolvedValue({
+      results: [
+        { id: 'task-1', content: 'Personal task', projectId: 'proj-personal', due: { date: getToday() } },
+        { id: 'task-2', content: 'Workspace task', projectId: 'proj-workspace', due: { date: getToday() } },
+      ],
+      nextCursor: null,
+    })
+    mockApi.getProjects.mockResolvedValue({
+      results: [
+        { id: 'proj-personal', name: 'Personal' },
+        { id: 'proj-workspace', name: 'Work', workspaceId: 'ws-1' },
+      ],
+      nextCursor: null,
+    })
+
+    await program.parseAsync(['node', 'td', 'today', '--personal'])
+
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Personal task'))
+    expect(consoleSpy).not.toHaveBeenCalledWith(expect.stringContaining('Workspace task'))
+  })
+
+  it('filters by --workspace to show only workspace tasks', async () => {
+    const program = createProgram()
+
+    mockApi.getTasks.mockResolvedValue({
+      results: [
+        { id: 'task-1', content: 'Personal task', projectId: 'proj-personal', due: { date: getToday() } },
+        { id: 'task-2', content: 'Workspace task', projectId: 'proj-workspace', due: { date: getToday() } },
+      ],
+      nextCursor: null,
+    })
+    mockApi.getProjects.mockResolvedValue({
+      results: [
+        { id: 'proj-personal', name: 'Personal' },
+        { id: 'proj-workspace', name: 'Work', workspaceId: 'ws-1' },
+      ],
+      nextCursor: null,
+    })
+    mockFetchWorkspaces.mockResolvedValue([{ id: 'ws-1', name: 'Acme Corp' } as any])
+
+    await program.parseAsync(['node', 'td', 'today', '--workspace', 'Acme'])
+
+    expect(consoleSpy).not.toHaveBeenCalledWith(expect.stringContaining('Personal task'))
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Workspace task'))
+  })
+
+  it('throws error when both --workspace and --personal specified', async () => {
+    const program = createProgram()
+
+    mockApi.getTasks.mockResolvedValue({ results: [], nextCursor: null })
+
+    await expect(
+      program.parseAsync(['node', 'td', 'today', '--workspace', 'Acme', '--personal'])
+    ).rejects.toThrow('mutually exclusive')
   })
 })

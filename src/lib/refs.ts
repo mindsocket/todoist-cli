@@ -1,6 +1,7 @@
 import { TodoistApi } from '@doist/todoist-api-typescript'
 import { formatError } from './output.js'
-import type { Task, Project, Section } from './api.js'
+import type { Task, Project, Section, Workspace } from './api.js'
+import { fetchWorkspaces } from './api.js'
 
 export function isIdRef(ref: string): boolean {
   return ref.startsWith('id:')
@@ -173,4 +174,35 @@ export async function resolveParentTaskId(
   throw new Error(
     formatError('PARENT_NOT_FOUND', `Parent task "${ref}" not found in project.`)
   )
+}
+
+export async function resolveWorkspaceRef(ref: string): Promise<Workspace> {
+  const workspaces = await fetchWorkspaces()
+
+  if (isIdRef(ref)) {
+    const id = extractId(ref)
+    const workspace = workspaces.find((w) => w.id === id)
+    if (!workspace) {
+      throw new Error(formatError('WORKSPACE_NOT_FOUND', `Workspace id:${id} not found.`))
+    }
+    return workspace
+  }
+
+  const lower = ref.toLowerCase()
+  const exact = workspaces.find((w) => w.name.toLowerCase() === lower)
+  if (exact) return exact
+
+  const partial = workspaces.filter((w) => w.name.toLowerCase().includes(lower))
+  if (partial.length === 1) return partial[0]
+  if (partial.length > 1) {
+    throw new Error(
+      formatError(
+        'AMBIGUOUS_WORKSPACE',
+        `Multiple workspaces match "${ref}":`,
+        partial.slice(0, 5).map((w) => `"${w.name}" (id:${w.id})`)
+      )
+    )
+  }
+
+  throw new Error(formatError('WORKSPACE_NOT_FOUND', `Workspace "${ref}" not found.`))
 }

@@ -10,6 +10,7 @@ interface ListOptions {
   limit?: string
   cursor?: string
   all?: boolean
+  personal?: boolean
   json?: boolean
   ndjson?: boolean
   full?: boolean
@@ -36,6 +37,20 @@ async function listProjects(options: ListOptions): Promise<void> {
 
   if (options.ndjson) {
     console.log(formatPaginatedNdjson({ results: projects, nextCursor }, 'project', options.full))
+    return
+  }
+
+  if (options.personal) {
+    const personalOnly = projects.filter((p) => !isWorkspaceProject(p))
+    for (const project of personalOnly) {
+      const id = chalk.dim(project.id)
+      let name = project.isFavorite ? chalk.yellow(project.name) : project.name
+      if (project.isShared) {
+        name = `${name} ${chalk.dim('[shared]')}`
+      }
+      console.log(`${id}  ${name}`)
+    }
+    console.log(formatNextCursorFooter(nextCursor))
     return
   }
 
@@ -202,6 +217,7 @@ export function registerProjectCommand(program: Command): void {
     .option('--limit <n>', 'Limit number of results (default: 50)')
     .option('--cursor <cursor>', 'Continue from cursor')
     .option('--all', 'Fetch all results (no limit)')
+    .option('--personal', 'Show only personal projects')
     .option('--json', 'Output as JSON')
     .option('--ndjson', 'Output as newline-delimited JSON')
     .option('--full', 'Include all fields in JSON output')
