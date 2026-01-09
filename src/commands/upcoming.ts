@@ -1,14 +1,16 @@
 import { Command } from 'commander'
-import { getApi, type Project, type Task } from '../lib/api.js'
+import { getApi, getCurrentUserId, type Project, type Task } from '../lib/api.js'
 import { formatTaskRow, formatPaginatedJson, formatPaginatedNdjson, formatNextCursorFooter } from '../lib/output.js'
 import { paginate, LIMITS } from '../lib/pagination.js'
 import { getLocalDate, formatDateHeader } from '../lib/dates.js'
+import { CollaboratorCache, formatAssignee } from '../lib/collaborators.js'
 import chalk from 'chalk'
 
 interface UpcomingOptions {
   limit?: string
   cursor?: string
   all?: boolean
+  anyAssignee?: boolean
   json?: boolean
   ndjson?: boolean
   full?: boolean
@@ -21,6 +23,7 @@ export function registerUpcomingCommand(program: Command): void {
     .option('--limit <n>', 'Limit number of results (default: 300)')
     .option('--cursor <cursor>', 'Continue from cursor')
     .option('--all', 'Fetch all results (no limit)')
+    .option('--any-assignee', 'Show tasks assigned to anyone (default: only me/unassigned)')
     .option('--json', 'Output as JSON')
     .option('--ndjson', 'Output as newline-delimited JSON')
     .option('--full', 'Include all fields in JSON output')
@@ -48,7 +51,15 @@ export function registerUpcomingCommand(program: Command): void {
       const today = getLocalDate(0)
       const endDate = getLocalDate(days)
 
-      const relevantTasks = tasks.filter(
+      let filteredTasks = tasks
+      if (!options.anyAssignee) {
+        const currentUserId = await getCurrentUserId()
+        filteredTasks = tasks.filter(
+          (t) => !t.responsibleUid || t.responsibleUid === currentUserId
+        )
+      }
+
+      const relevantTasks = filteredTasks.filter(
         (t) => t.due && t.due.date < endDate
       )
 
@@ -64,6 +75,9 @@ export function registerUpcomingCommand(program: Command): void {
 
       const { results: allProjects } = await api.getProjects()
       const projects = new Map<string, Project>(allProjects.map((p) => [p.id, p]))
+
+      const collaboratorCache = new CollaboratorCache()
+      await collaboratorCache.preload(api, relevantTasks, projects)
 
       if (relevantTasks.length === 0) {
         console.log(`No tasks due in the next ${days} day${days === 1 ? '' : 's'}.`)
@@ -88,7 +102,8 @@ export function registerUpcomingCommand(program: Command): void {
       if (overdue.length > 0) {
         console.log(chalk.red.bold(`Overdue (${overdue.length})`))
         for (const task of overdue) {
-          console.log(formatTaskRow(task, projects.get(task.projectId)?.name))
+          const assignee = formatAssignee(task.responsibleUid, task.projectId, projects, collaboratorCache)
+          console.log(formatTaskRow(task, projects.get(task.projectId)?.name, assignee ?? undefined))
           console.log('')
         }
       }
@@ -99,7 +114,8 @@ export function registerUpcomingCommand(program: Command): void {
         const header = formatDateHeader(date, today)
         console.log(chalk.bold(`${header} (${dateTasks.length})`))
         for (const task of dateTasks) {
-          console.log(formatTaskRow(task, projects.get(task.projectId)?.name))
+          const assignee = formatAssignee(task.responsibleUid, task.projectId, projects, collaboratorCache)
+          console.log(formatTaskRow(task, projects.get(task.projectId)?.name, assignee ?? undefined))
           console.log('')
         }
       }

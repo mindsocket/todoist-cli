@@ -1,14 +1,16 @@
 import { Command } from 'commander'
-import { getApi, type Project } from '../lib/api.js'
+import { getApi, getCurrentUserId, type Project } from '../lib/api.js'
 import { formatTaskRow, formatPaginatedJson, formatPaginatedNdjson, formatNextCursorFooter } from '../lib/output.js'
 import { paginate, LIMITS } from '../lib/pagination.js'
 import { getLocalDate } from '../lib/dates.js'
+import { CollaboratorCache, formatAssignee } from '../lib/collaborators.js'
 import chalk from 'chalk'
 
 interface TodayOptions {
   limit?: string
   cursor?: string
   all?: boolean
+  anyAssignee?: boolean
   json?: boolean
   ndjson?: boolean
   full?: boolean
@@ -21,6 +23,7 @@ export function registerTodayCommand(program: Command): void {
     .option('--limit <n>', 'Limit number of results (default: 300)')
     .option('--cursor <cursor>', 'Continue from cursor')
     .option('--all', 'Fetch all results (no limit)')
+    .option('--any-assignee', 'Show tasks assigned to anyone (default: only me/unassigned)')
     .option('--json', 'Output as JSON')
     .option('--ndjson', 'Output as newline-delimited JSON')
     .option('--full', 'Include all fields in JSON output')
@@ -40,8 +43,16 @@ export function registerTodayCommand(program: Command): void {
 
       const today = getLocalDate(0)
 
-      const overdue = tasks.filter((t) => t.due && t.due.date < today)
-      const dueToday = tasks.filter((t) => t.due?.date === today)
+      let filteredTasks = tasks
+      if (!options.anyAssignee) {
+        const currentUserId = await getCurrentUserId()
+        filteredTasks = tasks.filter(
+          (t) => !t.responsibleUid || t.responsibleUid === currentUserId
+        )
+      }
+
+      const overdue = filteredTasks.filter((t) => t.due && t.due.date < today)
+      const dueToday = filteredTasks.filter((t) => t.due?.date === today)
       const allTodayTasks = [...overdue, ...dueToday]
 
       if (options.json) {
@@ -57,6 +68,9 @@ export function registerTodayCommand(program: Command): void {
       const { results: allProjects } = await api.getProjects()
       const projects = new Map<string, Project>(allProjects.map((p) => [p.id, p]))
 
+      const collaboratorCache = new CollaboratorCache()
+      await collaboratorCache.preload(api, allTodayTasks, projects)
+
       if (overdue.length === 0 && dueToday.length === 0) {
         console.log('No tasks due today.')
         console.log(formatNextCursorFooter(nextCursor))
@@ -66,14 +80,16 @@ export function registerTodayCommand(program: Command): void {
       if (overdue.length > 0) {
         console.log(chalk.red.bold(`Overdue (${overdue.length})`))
         for (const task of overdue) {
-          console.log(formatTaskRow(task, projects.get(task.projectId)?.name))
+          const assignee = formatAssignee(task.responsibleUid, task.projectId, projects, collaboratorCache)
+          console.log(formatTaskRow(task, projects.get(task.projectId)?.name, assignee ?? undefined))
           console.log('')
         }
       }
 
       console.log(chalk.bold(`Today (${dueToday.length})`))
       for (const task of dueToday) {
-        console.log(formatTaskRow(task, projects.get(task.projectId)?.name))
+        const assignee = formatAssignee(task.responsibleUid, task.projectId, projects, collaboratorCache)
+        console.log(formatTaskRow(task, projects.get(task.projectId)?.name, assignee ?? undefined))
         console.log('')
       }
       console.log(formatNextCursorFooter(nextCursor))

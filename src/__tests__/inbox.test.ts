@@ -3,6 +3,7 @@ import { Command } from 'commander'
 
 vi.mock('../lib/api.js', () => ({
   getApi: vi.fn(),
+  isWorkspaceProject: vi.fn().mockReturnValue(false),
 }))
 
 import { getApi } from '../lib/api.js'
@@ -15,6 +16,7 @@ function createMockApi() {
     getUser: vi.fn(),
     getTasks: vi.fn().mockResolvedValue({ results: [], nextCursor: null }),
     getProject: vi.fn(),
+    getProjects: vi.fn().mockResolvedValue({ results: [], nextCursor: null }),
     getSections: vi.fn().mockResolvedValue({ results: [] }),
   }
 }

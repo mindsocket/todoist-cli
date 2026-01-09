@@ -27,12 +27,13 @@ export function formatDue(due: Task['due'] | undefined): string {
   return due.string || due.date
 }
 
-export function formatTaskRow(task: Task, projectName?: string): string {
+export function formatTaskRow(task: Task, projectName?: string, assignee?: string): string {
   const line1 = '  ' + task.content
   const metaParts = [chalk.dim(`id:${task.id}`), formatPriority(task.priority)]
   const due = formatDue(task.due)
   if (due) metaParts.push(chalk.green(due))
   if (projectName) metaParts.push(chalk.cyan(projectName))
+  if (assignee) metaParts.push(chalk.magenta(assignee))
   const line2 = '  ' + metaParts.join('  ')
   return `${line1}\n${line2}`
 }
@@ -76,7 +77,7 @@ export function formatTaskView(task: Task, project?: Project, full = false): str
 
 type FieldPicker<T> = (item: T) => Partial<T>
 
-const TASK_ESSENTIAL_FIELDS = ['id', 'content', 'description', 'priority', 'due', 'projectId', 'sectionId', 'parentId', 'labels', 'url'] as const
+const TASK_ESSENTIAL_FIELDS = ['id', 'content', 'description', 'priority', 'due', 'projectId', 'sectionId', 'parentId', 'labels', 'url', 'responsibleUid'] as const
 const PROJECT_ESSENTIAL_FIELDS = ['id', 'name', 'color', 'isFavorite', 'parentId', 'viewStyle', 'url'] as const
 const LABEL_ESSENTIAL_FIELDS = ['id', 'name', 'color', 'isFavorite'] as const
 const SECTION_ESSENTIAL_FIELDS = ['id', 'name', 'projectId', 'sectionOrder', 'url'] as const

@@ -1,7 +1,8 @@
 import { getApi, type Project, type Section } from './api.js'
 import { formatTaskRow, formatPaginatedJson, formatPaginatedNdjson, formatNextCursorFooter, formatError } from './output.js'
 import { paginate, LIMITS } from './pagination.js'
-import type { Task } from '@doist/todoist-api-typescript'
+import { CollaboratorCache, formatAssignee } from './collaborators.js'
+import type { Task, TodoistApi } from '@doist/todoist-api-typescript'
 import chalk from 'chalk'
 
 export interface TaskListOptions {
@@ -36,7 +37,9 @@ function getLocalToday(): string {
 function formatGroupedTaskList(
   tasks: Task[],
   project: Project,
-  sections: Section[]
+  sections: Section[],
+  projects: Map<string, Project>,
+  collaboratorCache: CollaboratorCache
 ): string {
   if (tasks.length === 0) {
     return 'No tasks found.'
@@ -60,7 +63,8 @@ function formatGroupedTaskList(
   if (noSection.length > 0) {
     lines.push(chalk.italic.dim(`(no section) (${noSection.length})`))
     for (const task of noSection) {
-      lines.push(formatTaskRow(task))
+      const assignee = formatAssignee(task.responsibleUid, task.projectId, projects, collaboratorCache)
+      lines.push(formatTaskRow(task, undefined, assignee ?? undefined))
       lines.push('')
     }
   }
@@ -70,7 +74,8 @@ function formatGroupedTaskList(
     if (sectionTasks && sectionTasks.length > 0) {
       lines.push(`${section.name} (${sectionTasks.length})`)
       for (const task of sectionTasks) {
-        lines.push(formatTaskRow(task))
+        const assignee = formatAssignee(task.responsibleUid, task.projectId, projects, collaboratorCache)
+        lines.push(formatTaskRow(task, undefined, assignee ?? undefined))
         lines.push('')
       }
     }
@@ -79,14 +84,19 @@ function formatGroupedTaskList(
   return lines.join('\n').trimEnd()
 }
 
-function formatFlatTaskList(tasks: Task[], projects: Map<string, Project>): string {
+function formatFlatTaskList(
+  tasks: Task[],
+  projects: Map<string, Project>,
+  collaboratorCache: CollaboratorCache
+): string {
   if (tasks.length === 0) {
     return 'No tasks found.'
   }
 
   const blocks = tasks.map((task) => {
     const projectName = projects.get(task.projectId)?.name
-    return formatTaskRow(task, projectName)
+    const assignee = formatAssignee(task.responsibleUid, task.projectId, projects, collaboratorCache)
+    return formatTaskRow(task, projectName, assignee ?? undefined)
   })
 
   return blocks.join('\n\n')
@@ -152,15 +162,21 @@ export async function listTasksForProject(
   }
 
   if (projectId) {
-    const [projectRes, sectionsRes] = await Promise.all([
+    const [projectRes, sectionsRes, { results: allProjects }] = await Promise.all([
       api.getProject(projectId),
       api.getSections({ projectId }),
+      api.getProjects(),
     ])
-    console.log(formatGroupedTaskList(filtered, projectRes, sectionsRes.results))
+    const projects = new Map(allProjects.map((p) => [p.id, p]))
+    const collaboratorCache = new CollaboratorCache()
+    await collaboratorCache.preload(api, filtered, projects)
+    console.log(formatGroupedTaskList(filtered, projectRes, sectionsRes.results, projects, collaboratorCache))
   } else {
     const { results: allProjects } = await api.getProjects()
     const projects = new Map(allProjects.map((p) => [p.id, p]))
-    console.log(formatFlatTaskList(filtered, projects))
+    const collaboratorCache = new CollaboratorCache()
+    await collaboratorCache.preload(api, filtered, projects)
+    console.log(formatFlatTaskList(filtered, projects, collaboratorCache))
   }
   console.log(formatNextCursorFooter(nextCursor))
 }

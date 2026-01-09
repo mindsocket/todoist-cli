@@ -44,6 +44,7 @@ export interface WorkspaceFolder {
 
 let workspaceCache: Workspace[] | null = null
 let folderCache: WorkspaceFolder[] | null = null
+let currentUserIdCache: string | null = null
 
 async function fetchWorkspaceData(): Promise<{ workspaces: Workspace[]; folders: WorkspaceFolder[] }> {
   if (workspaceCache !== null && folderCache !== null) {
@@ -115,6 +116,18 @@ export async function fetchWorkspaceFolders(): Promise<WorkspaceFolder[]> {
 export function clearWorkspaceCache(): void {
   workspaceCache = null
   folderCache = null
+}
+
+export async function getCurrentUserId(): Promise<string> {
+  if (currentUserIdCache) return currentUserIdCache
+  const api = await getApi()
+  const user = await api.getUser()
+  currentUserIdCache = user.id
+  return currentUserIdCache
+}
+
+export function clearCurrentUserCache(): void {
+  currentUserIdCache = null
 }
 
 export type { Task, PersonalProject, WorkspaceProject, Section, User }

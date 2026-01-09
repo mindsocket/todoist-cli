@@ -3,6 +3,8 @@ import { Command } from 'commander'
 
 vi.mock('../lib/api.js', () => ({
   getApi: vi.fn(),
+  getCurrentUserId: vi.fn().mockResolvedValue('current-user-123'),
+  isWorkspaceProject: vi.fn().mockReturnValue(false),
 }))
 
 import { getApi } from '../lib/api.js'
