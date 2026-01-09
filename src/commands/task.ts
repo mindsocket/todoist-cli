@@ -1,23 +1,12 @@
 import { Command } from 'commander'
 import { getApi, type Project } from '../lib/api.js'
-import {
-  formatTaskList,
-  formatTaskView,
-  formatJson,
-  formatNdjson,
-  formatError,
-} from '../lib/output.js'
+import { formatTaskView, formatError } from '../lib/output.js'
 import { isIdRef, extractId, requireIdRef } from '../lib/refs.js'
+import { listTasksForProject, parsePriority, type TaskListOptions } from '../lib/task-list.js'
 import type { Task } from '@doist/todoist-api-typescript'
 
-interface ListOptions {
+interface ListOptions extends TaskListOptions {
   project?: string
-  priority?: string
-  due?: string
-  filter?: string
-  limit?: string
-  json?: boolean
-  ndjson?: boolean
 }
 
 interface ViewOptions {
@@ -52,73 +41,15 @@ async function resolveProjectId(api: Awaited<ReturnType<typeof getApi>>, nameOrI
   )
 }
 
-function parsePriority(p: string): number | undefined {
-  const match = /^p([1-4])$/.exec(p.toLowerCase())
-  if (!match) {
-    throw new Error(
-      formatError('INVALID_PRIORITY', `Invalid priority "${p}". Use p1, p2, p3, or p4.`)
-    )
-  }
-  // API uses 4=p1 (highest), 1=p4 (lowest)
-  return 5 - parseInt(match[1], 10)
-}
-
 async function listTasks(options: ListOptions): Promise<void> {
-  const api = await getApi()
+  let projectId: string | null = null
 
-  let tasks: Task[]
-  let projects: Map<string, Project> | undefined
-
-  // Filter by project if specified
   if (options.project) {
-    const projectId = await resolveProjectId(api, options.project)
-    if (projectId) {
-      const response = await api.getTasks({ projectId })
-      tasks = response.results
-    } else {
-      tasks = []
-    }
-  } else {
-    const response = await api.getTasks()
-    tasks = response.results
+    const api = await getApi()
+    projectId = await resolveProjectId(api, options.project)
   }
 
-  // Filter by priority
-  if (options.priority) {
-    const priority = parsePriority(options.priority)
-    tasks = tasks.filter((t) => t.priority === priority)
-  }
-
-  // Filter by due date
-  if (options.due) {
-    const today = new Date().toISOString().split('T')[0]
-    if (options.due === 'today') {
-      tasks = tasks.filter((t) => t.due?.date === today)
-    } else if (options.due === 'overdue') {
-      tasks = tasks.filter((t) => t.due && t.due.date < today)
-    } else {
-      tasks = tasks.filter((t) => t.due?.date === options.due)
-    }
-  }
-
-  // Apply limit
-  const limit = options.limit ? parseInt(options.limit, 10) : 50
-  tasks = tasks.slice(0, limit)
-
-  // Load project names for display
-  if (!options.json && !options.ndjson && tasks.length > 0) {
-    const { results: allProjects } = await api.getProjects()
-    projects = new Map(allProjects.map((p) => [p.id, p]))
-  }
-
-  // Output
-  if (options.json) {
-    console.log(formatJson(tasks))
-  } else if (options.ndjson) {
-    console.log(formatNdjson(tasks))
-  } else {
-    console.log(formatTaskList(tasks, projects))
-  }
+  await listTasksForProject(projectId, options)
 }
 
 async function resolveTaskRef(api: Awaited<ReturnType<typeof getApi>>, ref: string): Promise<Task> {

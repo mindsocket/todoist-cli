@@ -8,6 +8,7 @@ import { registerCommentCommand } from './commands/comment.js'
 import { registerSectionCommand } from './commands/section.js'
 import { getApi, type Project } from './lib/api.js'
 import { formatDue, formatTaskRow } from './lib/output.js'
+import { listTasksForProject, type TaskListOptions } from './lib/task-list.js'
 import chalk from 'chalk'
 
 program
@@ -69,19 +70,15 @@ program
 program
   .command('inbox')
   .description('List tasks in Inbox')
-  .action(async () => {
+  .option('--priority <p1-p4>', 'Filter by priority')
+  .option('--due <date>', 'Filter by due date (today, overdue, or YYYY-MM-DD)')
+  .option('--limit <n>', 'Limit number of results', '50')
+  .option('--json', 'Output as JSON array')
+  .option('--ndjson', 'Output as newline-delimited JSON')
+  .action(async (options: TaskListOptions) => {
     const api = await getApi()
     const user = await api.getUser()
-    const { results: tasks } = await api.getTasks({ projectId: user.inboxProjectId })
-
-    if (tasks.length === 0) {
-      console.log('Inbox is empty.')
-      return
-    }
-
-    for (const task of tasks) {
-      console.log(formatTaskRow(task))
-    }
+    await listTasksForProject(user.inboxProjectId, options)
   })
 
 registerTaskCommand(program)
