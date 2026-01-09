@@ -1,11 +1,12 @@
 import { Command } from 'commander'
 import { getApi } from '../lib/api.js'
-import { formatJson, formatError } from '../lib/output.js'
+import { formatJson, formatNdjson, formatError } from '../lib/output.js'
 import { isIdRef, extractId } from '../lib/refs.js'
 import chalk from 'chalk'
 
 interface ListOptions {
   json?: boolean
+  ndjson?: boolean
 }
 
 async function listProjects(options: ListOptions): Promise<void> {
@@ -14,6 +15,11 @@ async function listProjects(options: ListOptions): Promise<void> {
 
   if (options.json) {
     console.log(formatJson(projects))
+    return
+  }
+
+  if (options.ndjson) {
+    console.log(formatNdjson(projects))
     return
   }
 
@@ -81,7 +87,8 @@ export function registerProjectCommand(program: Command): void {
   project
     .command('list')
     .description('List all projects')
-    .option('--json', 'Output as JSON')
+    .option('--json', 'Output as JSON array')
+    .option('--ndjson', 'Output as newline-delimited JSON')
     .action(listProjects)
 
   project

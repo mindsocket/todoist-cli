@@ -1,6 +1,6 @@
 import { Command } from 'commander'
 import { getApi } from '../lib/api.js'
-import { formatJson, formatError } from '../lib/output.js'
+import { formatJson, formatNdjson, formatError } from '../lib/output.js'
 import { isIdRef, extractId, requireIdRef } from '../lib/refs.js'
 import chalk from 'chalk'
 
@@ -32,6 +32,7 @@ async function resolveProjectId(api: Awaited<ReturnType<typeof getApi>>, nameOrI
 
 interface ListOptions {
   json?: boolean
+  ndjson?: boolean
 }
 
 async function listSections(projectRef: string, options: ListOptions): Promise<void> {
@@ -41,6 +42,11 @@ async function listSections(projectRef: string, options: ListOptions): Promise<v
 
   if (options.json) {
     console.log(formatJson(sections))
+    return
+  }
+
+  if (options.ndjson) {
+    console.log(formatNdjson(sections))
     return
   }
 
@@ -90,7 +96,8 @@ export function registerSectionCommand(program: Command): void {
   section
     .command('list <project>')
     .description('List sections in a project')
-    .option('--json', 'Output as JSON')
+    .option('--json', 'Output as JSON array')
+    .option('--ndjson', 'Output as newline-delimited JSON')
     .action(listSections)
 
   section

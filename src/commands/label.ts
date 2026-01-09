@@ -1,11 +1,12 @@
 import { Command } from 'commander'
 import { getApi } from '../lib/api.js'
-import { formatJson, formatError } from '../lib/output.js'
+import { formatJson, formatNdjson, formatError } from '../lib/output.js'
 import { isIdRef, extractId } from '../lib/refs.js'
 import chalk from 'chalk'
 
 interface ListOptions {
   json?: boolean
+  ndjson?: boolean
 }
 
 async function listLabels(options: ListOptions): Promise<void> {
@@ -14,6 +15,11 @@ async function listLabels(options: ListOptions): Promise<void> {
 
   if (options.json) {
     console.log(formatJson(labels))
+    return
+  }
+
+  if (options.ndjson) {
+    console.log(formatNdjson(labels))
     return
   }
 
@@ -81,7 +87,8 @@ export function registerLabelCommand(program: Command): void {
   label
     .command('list')
     .description('List all labels')
-    .option('--json', 'Output as JSON')
+    .option('--json', 'Output as JSON array')
+    .option('--ndjson', 'Output as newline-delimited JSON')
     .action(listLabels)
 
   label

@@ -1,6 +1,6 @@
 import { Command } from 'commander'
 import { getApi } from '../lib/api.js'
-import { formatJson, formatError } from '../lib/output.js'
+import { formatJson, formatNdjson, formatError } from '../lib/output.js'
 import { isIdRef, extractId, requireIdRef } from '../lib/refs.js'
 import type { Task } from '@doist/todoist-api-typescript'
 import chalk from 'chalk'
@@ -33,6 +33,7 @@ async function resolveTaskRef(api: Awaited<ReturnType<typeof getApi>>, ref: stri
 
 interface ListOptions {
   json?: boolean
+  ndjson?: boolean
 }
 
 async function listComments(taskRef: string, options: ListOptions): Promise<void> {
@@ -42,6 +43,11 @@ async function listComments(taskRef: string, options: ListOptions): Promise<void
 
   if (options.json) {
     console.log(formatJson(comments))
+    return
+  }
+
+  if (options.ndjson) {
+    console.log(formatNdjson(comments))
     return
   }
 
@@ -93,7 +99,8 @@ export function registerCommentCommand(program: Command): void {
   comment
     .command('list <task>')
     .description('List comments on a task')
-    .option('--json', 'Output as JSON')
+    .option('--json', 'Output as JSON array')
+    .option('--ndjson', 'Output as newline-delimited JSON')
     .action(listComments)
 
   comment
