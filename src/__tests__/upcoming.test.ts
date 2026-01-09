@@ -1,0 +1,217 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { Command } from 'commander'
+
+vi.mock('../lib/api.js', () => ({
+  getApi: vi.fn(),
+}))
+
+import { getApi } from '../lib/api.js'
+import { registerUpcomingCommand } from '../commands/upcoming.js'
+
+const mockGetApi = vi.mocked(getApi)
+
+function createMockApi() {
+  return {
+    getTasks: vi.fn().mockResolvedValue({ results: [], nextCursor: null }),
+    getProjects: vi.fn().mockResolvedValue({ results: [], nextCursor: null }),
+  }
+}
+
+function createProgram() {
+  const program = new Command()
+  program.exitOverride()
+  registerUpcomingCommand(program)
+  return program
+}
+
+function getDateOffset(days: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() + days)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+describe('upcoming command', () => {
+  let mockApi: ReturnType<typeof createMockApi>
+  let consoleSpy: ReturnType<typeof vi.spyOn>
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockApi = createMockApi()
+    mockGetApi.mockResolvedValue(mockApi as any)
+    consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    consoleSpy.mockRestore()
+  })
+
+  it('defaults to 7 days', async () => {
+    const program = createProgram()
+
+    mockApi.getTasks.mockResolvedValue({
+      results: [
+        { id: 'task-1', content: 'Task in range', projectId: 'proj-1', due: { date: getDateOffset(3) } },
+        { id: 'task-2', content: 'Task out of range', projectId: 'proj-1', due: { date: getDateOffset(10) } },
+      ],
+      nextCursor: null,
+    })
+    mockApi.getProjects.mockResolvedValue({ results: [{ id: 'proj-1', name: 'Work' }], nextCursor: null })
+
+    await program.parseAsync(['node', 'td', 'upcoming'])
+
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Task in range'))
+    expect(consoleSpy).not.toHaveBeenCalledWith(expect.stringContaining('Task out of range'))
+  })
+
+  it('accepts custom days argument', async () => {
+    const program = createProgram()
+
+    mockApi.getTasks.mockResolvedValue({
+      results: [
+        { id: 'task-1', content: 'Task day 2', projectId: 'proj-1', due: { date: getDateOffset(2) } },
+        { id: 'task-2', content: 'Task day 5', projectId: 'proj-1', due: { date: getDateOffset(5) } },
+      ],
+      nextCursor: null,
+    })
+    mockApi.getProjects.mockResolvedValue({ results: [{ id: 'proj-1', name: 'Work' }], nextCursor: null })
+
+    await program.parseAsync(['node', 'td', 'upcoming', '3'])
+
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Task day 2'))
+    expect(consoleSpy).not.toHaveBeenCalledWith(expect.stringContaining('Task day 5'))
+  })
+
+  it('always includes overdue tasks', async () => {
+    const program = createProgram()
+
+    mockApi.getTasks.mockResolvedValue({
+      results: [
+        { id: 'task-1', content: 'Overdue task', projectId: 'proj-1', due: { date: getDateOffset(-2) } },
+      ],
+      nextCursor: null,
+    })
+    mockApi.getProjects.mockResolvedValue({ results: [{ id: 'proj-1', name: 'Work' }], nextCursor: null })
+
+    await program.parseAsync(['node', 'td', 'upcoming', '3'])
+
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Overdue'))
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Overdue task'))
+  })
+
+  it('shows Today header for today tasks', async () => {
+    const program = createProgram()
+
+    mockApi.getTasks.mockResolvedValue({
+      results: [
+        { id: 'task-1', content: 'Today task', projectId: 'proj-1', due: { date: getDateOffset(0) } },
+      ],
+      nextCursor: null,
+    })
+    mockApi.getProjects.mockResolvedValue({ results: [{ id: 'proj-1', name: 'Work' }], nextCursor: null })
+
+    await program.parseAsync(['node', 'td', 'upcoming'])
+
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Today'))
+  })
+
+  it('shows Tomorrow header for tomorrow tasks', async () => {
+    const program = createProgram()
+
+    mockApi.getTasks.mockResolvedValue({
+      results: [
+        { id: 'task-1', content: 'Tomorrow task', projectId: 'proj-1', due: { date: getDateOffset(1) } },
+      ],
+      nextCursor: null,
+    })
+    mockApi.getProjects.mockResolvedValue({ results: [{ id: 'proj-1', name: 'Work' }], nextCursor: null })
+
+    await program.parseAsync(['node', 'td', 'upcoming'])
+
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Tomorrow'))
+  })
+
+  it('shows empty message when no tasks', async () => {
+    const program = createProgram()
+
+    mockApi.getTasks.mockResolvedValue({ results: [], nextCursor: null })
+    mockApi.getProjects.mockResolvedValue({ results: [], nextCursor: null })
+
+    await program.parseAsync(['node', 'td', 'upcoming'])
+
+    expect(consoleSpy).toHaveBeenCalledWith('No tasks due in the next 7 days.')
+  })
+
+  it('shows singular "day" for 1 day', async () => {
+    const program = createProgram()
+
+    mockApi.getTasks.mockResolvedValue({ results: [], nextCursor: null })
+    mockApi.getProjects.mockResolvedValue({ results: [], nextCursor: null })
+
+    await program.parseAsync(['node', 'td', 'upcoming', '1'])
+
+    expect(consoleSpy).toHaveBeenCalledWith('No tasks due in the next 1 day.')
+  })
+
+  it('outputs JSON with --json flag', async () => {
+    const program = createProgram()
+
+    mockApi.getTasks.mockResolvedValue({
+      results: [
+        { id: 'task-1', content: 'Task', projectId: 'proj-1', due: { date: getDateOffset(1) } },
+      ],
+      nextCursor: null,
+    })
+
+    await program.parseAsync(['node', 'td', 'upcoming', '--json'])
+
+    const output = consoleSpy.mock.calls[0][0]
+    const parsed = JSON.parse(output)
+    expect(parsed.results).toBeDefined()
+    expect(parsed.results[0].content).toBe('Task')
+  })
+
+  it('outputs NDJSON with --ndjson flag', async () => {
+    const program = createProgram()
+
+    mockApi.getTasks.mockResolvedValue({
+      results: [
+        { id: 'task-1', content: 'Task 1', projectId: 'proj-1', due: { date: getDateOffset(0) } },
+        { id: 'task-2', content: 'Task 2', projectId: 'proj-1', due: { date: getDateOffset(1) } },
+      ],
+      nextCursor: null,
+    })
+
+    await program.parseAsync(['node', 'td', 'upcoming', '--ndjson'])
+
+    const output = consoleSpy.mock.calls[0][0]
+    const lines = output.split('\n')
+    expect(lines).toHaveLength(2)
+  })
+
+  it('groups tasks by date with counts', async () => {
+    const program = createProgram()
+
+    mockApi.getTasks.mockResolvedValue({
+      results: [
+        { id: 'task-1', content: 'Task 1', projectId: 'proj-1', due: { date: getDateOffset(0) } },
+        { id: 'task-2', content: 'Task 2', projectId: 'proj-1', due: { date: getDateOffset(0) } },
+      ],
+      nextCursor: null,
+    })
+    mockApi.getProjects.mockResolvedValue({ results: [{ id: 'proj-1', name: 'Work' }], nextCursor: null })
+
+    await program.parseAsync(['node', 'td', 'upcoming'])
+
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Today (2)'))
+  })
+
+  it('rejects invalid days argument', async () => {
+    const program = createProgram()
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await program.parseAsync(['node', 'td', 'upcoming', 'invalid'])
+
+    expect(errorSpy).toHaveBeenCalledWith('Days must be a positive number')
+    errorSpy.mockRestore()
+  })
+})

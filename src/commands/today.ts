@@ -2,6 +2,7 @@ import { Command } from 'commander'
 import { getApi, type Project } from '../lib/api.js'
 import { formatTaskRow, formatPaginatedJson, formatPaginatedNdjson, formatNextCursorFooter } from '../lib/output.js'
 import { paginate, LIMITS } from '../lib/pagination.js'
+import { getLocalDate } from '../lib/dates.js'
 import chalk from 'chalk'
 
 interface TodayOptions {
@@ -37,8 +38,7 @@ export function registerTodayCommand(program: Command): void {
         { limit: targetLimit, startCursor: options.cursor }
       )
 
-      const now = new Date()
-      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+      const today = getLocalDate(0)
 
       const overdue = tasks.filter((t) => t.due && t.due.date < today)
       const dueToday = tasks.filter((t) => t.due?.date === today)
