@@ -20,6 +20,7 @@ function createMockApi() {
     addTask: vi.fn(),
     updateTask: vi.fn(),
     closeTask: vi.fn(),
+    reopenTask: vi.fn(),
     deleteTask: vi.fn(),
     moveTask: vi.fn(),
   }
@@ -285,6 +286,37 @@ describe('task complete', () => {
 
     expect(mockApi.closeTask).toHaveBeenCalledWith('task-1')
     consoleSpy.mockRestore()
+  })
+})
+
+describe('task uncomplete', () => {
+  let mockApi: ReturnType<typeof createMockApi>
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockApi = createMockApi()
+    mockGetApi.mockResolvedValue(mockApi as any)
+  })
+
+  it('reopens task with id: prefix', async () => {
+    const program = createProgram()
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    mockApi.reopenTask.mockResolvedValue(true)
+
+    await program.parseAsync(['node', 'td', 'task', 'uncomplete', 'id:task-1'])
+
+    expect(mockApi.reopenTask).toHaveBeenCalledWith('task-1')
+    expect(consoleSpy).toHaveBeenCalledWith('Reopened task task-1')
+    consoleSpy.mockRestore()
+  })
+
+  it('requires id: prefix', async () => {
+    const program = createProgram()
+
+    await expect(
+      program.parseAsync(['node', 'td', 'task', 'uncomplete', 'some-task-name'])
+    ).rejects.toThrow('INVALID_REF')
   })
 })
 

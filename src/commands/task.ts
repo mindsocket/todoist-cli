@@ -52,6 +52,13 @@ async function completeTask(ref: string): Promise<void> {
   console.log(`Completed: ${task.content}`)
 }
 
+async function uncompleteTask(ref: string): Promise<void> {
+  const api = await getApi()
+  const id = requireIdRef(ref, 'task')
+  await api.reopenTask(id)
+  console.log(`Reopened task ${id}`)
+}
+
 async function deleteTask(ref: string, options: { yes?: boolean }): Promise<void> {
   if (!options.yes) {
     throw new Error(
@@ -214,6 +221,11 @@ export function registerTaskCommand(program: Command): void {
     .command('complete <ref>')
     .description('Complete a task')
     .action(completeTask)
+
+  task
+    .command('uncomplete <ref>')
+    .description('Reopen a completed task (requires id:xxx)')
+    .action(uncompleteTask)
 
   task
     .command('delete <ref>')

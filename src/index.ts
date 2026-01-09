@@ -4,6 +4,7 @@ import { program } from 'commander'
 import { registerAddCommand } from './commands/add.js'
 import { registerTodayCommand } from './commands/today.js'
 import { registerInboxCommand } from './commands/inbox.js'
+import { registerCompletedCommand } from './commands/completed.js'
 import { registerTaskCommand } from './commands/task.js'
 import { registerProjectCommand } from './commands/project.js'
 import { registerLabelCommand } from './commands/label.js'
@@ -22,6 +23,7 @@ Note for AI/LLM agents:
 registerAddCommand(program)
 registerTodayCommand(program)
 registerInboxCommand(program)
+registerCompletedCommand(program)
 registerTaskCommand(program)
 registerProjectCommand(program)
 registerLabelCommand(program)
