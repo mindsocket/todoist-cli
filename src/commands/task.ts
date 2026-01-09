@@ -12,6 +12,8 @@ import { listTasksForProject, parsePriority, type TaskListOptions } from '../lib
 
 interface ListOptions extends TaskListOptions {
   project?: string
+  parent?: string
+  label?: string
 }
 
 interface ViewOptions {
@@ -19,14 +21,21 @@ interface ViewOptions {
 }
 
 async function listTasks(options: ListOptions): Promise<void> {
-  let projectId: string | null = null
+  const api = await getApi()
 
+  let projectId: string | null = null
   if (options.project) {
-    const api = await getApi()
     projectId = await resolveProjectId(api, options.project)
   }
 
-  await listTasksForProject(projectId, options)
+  let parentId: string | undefined
+  if (options.parent) {
+    const parentTask = await resolveTaskRef(api, options.parent)
+    parentId = parentTask.id
+    if (!projectId) projectId = parentTask.projectId
+  }
+
+  await listTasksForProject(projectId, { ...options, parent: parentId })
 }
 
 async function viewTask(ref: string, options: ViewOptions): Promise<void> {
@@ -200,6 +209,8 @@ export function registerTaskCommand(program: Command): void {
     .command('list')
     .description('List tasks')
     .option('--project <name>', 'Filter by project name or id:xxx')
+    .option('--parent <ref>', 'Filter subtasks of a parent task')
+    .option('--label <name>', 'Filter by label (comma-separated for multiple)')
     .option('--priority <p1-p4>', 'Filter by priority')
     .option('--due <date>', 'Filter by due date (today, overdue, or YYYY-MM-DD)')
     .option('--filter <query>', 'Raw Todoist filter query')

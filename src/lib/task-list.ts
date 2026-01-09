@@ -8,6 +8,8 @@ export interface TaskListOptions {
   priority?: string
   due?: string
   filter?: string
+  label?: string
+  parent?: string
   limit?: string
   cursor?: string
   all?: boolean
@@ -126,6 +128,17 @@ export async function listTasksForProject(
     } else {
       filtered = filtered.filter((t) => t.due?.date === options.due)
     }
+  }
+
+  if (options.parent) {
+    filtered = filtered.filter((t) => t.parentId === options.parent)
+  }
+
+  if (options.label) {
+    const labels = options.label.split(',').map((l) => l.trim().toLowerCase())
+    filtered = filtered.filter((t) =>
+      t.labels.some((tl) => labels.includes(tl.toLowerCase()))
+    )
   }
 
   if (options.json) {

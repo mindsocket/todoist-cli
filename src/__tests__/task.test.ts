@@ -569,3 +569,149 @@ describe('task update', () => {
     consoleSpy.mockRestore()
   })
 })
+
+describe('task list --label', () => {
+  let mockApi: ReturnType<typeof createMockApi>
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockApi = createMockApi()
+    mockGetApi.mockResolvedValue(mockApi as any)
+  })
+
+  it('filters tasks by label', async () => {
+    const program = createProgram()
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    mockApi.getTasks.mockResolvedValue({
+      results: [
+        { id: 'task-1', content: 'Work task', labels: ['work'], projectId: 'proj-1' },
+        { id: 'task-2', content: 'Home task', labels: ['home'], projectId: 'proj-1' },
+        { id: 'task-3', content: 'Both', labels: ['work', 'urgent'], projectId: 'proj-1' },
+      ],
+    })
+    mockApi.getProjects.mockResolvedValue({ results: [{ id: 'proj-1', name: 'Inbox' }] })
+
+    await program.parseAsync(['node', 'td', 'task', 'list', '--label', 'work'])
+
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Work task'))
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Both'))
+    expect(consoleSpy).not.toHaveBeenCalledWith(expect.stringContaining('Home task'))
+    consoleSpy.mockRestore()
+  })
+
+  it('filters tasks by multiple labels (OR)', async () => {
+    const program = createProgram()
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    mockApi.getTasks.mockResolvedValue({
+      results: [
+        { id: 'task-1', content: 'Work task', labels: ['work'], projectId: 'proj-1' },
+        { id: 'task-2', content: 'Home task', labels: ['home'], projectId: 'proj-1' },
+        { id: 'task-3', content: 'Urgent task', labels: ['urgent'], projectId: 'proj-1' },
+      ],
+    })
+    mockApi.getProjects.mockResolvedValue({ results: [{ id: 'proj-1', name: 'Inbox' }] })
+
+    await program.parseAsync(['node', 'td', 'task', 'list', '--label', 'work,urgent'])
+
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Work task'))
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Urgent task'))
+    expect(consoleSpy).not.toHaveBeenCalledWith(expect.stringContaining('Home task'))
+    consoleSpy.mockRestore()
+  })
+
+  it('label filter is case-insensitive', async () => {
+    const program = createProgram()
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    mockApi.getTasks.mockResolvedValue({
+      results: [
+        { id: 'task-1', content: 'Work task', labels: ['Work'], projectId: 'proj-1' },
+      ],
+    })
+    mockApi.getProjects.mockResolvedValue({ results: [{ id: 'proj-1', name: 'Inbox' }] })
+
+    await program.parseAsync(['node', 'td', 'task', 'list', '--label', 'WORK'])
+
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Work task'))
+    consoleSpy.mockRestore()
+  })
+})
+
+describe('task list --parent', () => {
+  let mockApi: ReturnType<typeof createMockApi>
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockApi = createMockApi()
+    mockGetApi.mockResolvedValue(mockApi as any)
+  })
+
+  it('filters subtasks by parent id', async () => {
+    const program = createProgram()
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    mockApi.getTask.mockResolvedValue({ id: 'parent-1', content: 'Parent task', projectId: 'proj-1' })
+    mockApi.getTasks.mockResolvedValue({
+      results: [
+        { id: 'parent-1', content: 'Parent task', parentId: null, projectId: 'proj-1', labels: [] },
+        { id: 'child-1', content: 'Child 1', parentId: 'parent-1', projectId: 'proj-1', labels: [] },
+        { id: 'child-2', content: 'Child 2', parentId: 'parent-1', projectId: 'proj-1', labels: [] },
+        { id: 'other', content: 'Other task', parentId: null, projectId: 'proj-1', labels: [] },
+      ],
+    })
+    mockApi.getProject.mockResolvedValue({ id: 'proj-1', name: 'Test Project' })
+    mockApi.getSections.mockResolvedValue({ results: [] })
+
+    await program.parseAsync(['node', 'td', 'task', 'list', '--parent', 'id:parent-1'])
+
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Child 1'))
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Child 2'))
+    expect(consoleSpy).not.toHaveBeenCalledWith(expect.stringContaining('Parent task'))
+    expect(consoleSpy).not.toHaveBeenCalledWith(expect.stringContaining('Other task'))
+    consoleSpy.mockRestore()
+  })
+
+  it('resolves parent by name', async () => {
+    const program = createProgram()
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    mockApi.getTasks
+      .mockResolvedValueOnce({
+        results: [{ id: 'parent-1', content: 'Parent task', projectId: 'proj-1' }],
+      })
+      .mockResolvedValueOnce({
+        results: [
+          { id: 'parent-1', content: 'Parent task', parentId: null, projectId: 'proj-1', labels: [] },
+          { id: 'child-1', content: 'Child task', parentId: 'parent-1', projectId: 'proj-1', labels: [] },
+        ],
+      })
+    mockApi.getProject.mockResolvedValue({ id: 'proj-1', name: 'Test Project' })
+    mockApi.getSections.mockResolvedValue({ results: [] })
+
+    await program.parseAsync(['node', 'td', 'task', 'list', '--parent', 'Parent task'])
+
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Child task'))
+    consoleSpy.mockRestore()
+  })
+
+  it('shows no tasks message when parent has no children', async () => {
+    const program = createProgram()
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    mockApi.getTask.mockResolvedValue({ id: 'parent-1', content: 'Parent task', projectId: 'proj-1' })
+    mockApi.getTasks.mockResolvedValue({
+      results: [
+        { id: 'parent-1', content: 'Parent task', parentId: null, projectId: 'proj-1', labels: [] },
+      ],
+    })
+    mockApi.getProject.mockResolvedValue({ id: 'proj-1', name: 'Test Project' })
+    mockApi.getSections.mockResolvedValue({ results: [] })
+
+    await program.parseAsync(['node', 'td', 'task', 'list', '--parent', 'id:parent-1'])
+
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('No tasks found'))
+    consoleSpy.mockRestore()
+  })
+})
