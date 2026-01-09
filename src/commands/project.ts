@@ -95,6 +95,10 @@ async function listProjects(options: ListOptions): Promise<void> {
     console.log('')
   }
   console.log(formatNextCursorFooter(nextCursor))
+
+  if (sortedWorkspaceIds.length > 0) {
+    console.log(chalk.dim('Tip: Use `td workspace projects <name>` for a detailed view with folders.'))
+  }
 }
 
 async function viewProject(ref: string): Promise<void> {
