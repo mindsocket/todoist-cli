@@ -1,7 +1,13 @@
 import { Command } from 'commander'
 import { getApi } from '../lib/api.js'
 import { formatTaskView, formatError } from '../lib/output.js'
-import { requireIdRef, resolveProjectId, resolveTaskRef } from '../lib/refs.js'
+import {
+  requireIdRef,
+  resolveParentTaskId,
+  resolveProjectId,
+  resolveSectionId,
+  resolveTaskRef,
+} from '../lib/refs.js'
 import { listTasksForProject, parsePriority, type TaskListOptions } from '../lib/task-list.js'
 
 interface ListOptions extends TaskListOptions {
@@ -136,6 +142,50 @@ async function updateTask(ref: string, options: UpdateOptions): Promise<void> {
   console.log(`Updated: ${updated.content}`)
 }
 
+interface MoveOptions {
+  project?: string
+  section?: string
+  parent?: string
+}
+
+async function moveTask(ref: string, options: MoveOptions): Promise<void> {
+  if (!options.project && !options.section && !options.parent) {
+    throw new Error(
+      formatError(
+        'MISSING_DESTINATION',
+        'At least one of --project, --section, or --parent is required.'
+      )
+    )
+  }
+
+  const api = await getApi()
+  const task = await resolveTaskRef(api, ref)
+
+  const targetProjectId = options.project
+    ? await resolveProjectId(api, options.project)
+    : task.projectId
+
+  let targetSectionId: string | undefined
+  if (options.section) {
+    targetSectionId = await resolveSectionId(api, options.section, targetProjectId)
+  }
+
+  if (options.parent) {
+    const parentId = await resolveParentTaskId(
+      api,
+      options.parent,
+      targetProjectId,
+      targetSectionId ?? task.sectionId ?? undefined
+    )
+    await api.moveTask(task.id, { parentId })
+  } else if (targetSectionId) {
+    await api.moveTask(task.id, { sectionId: targetSectionId })
+  } else {
+    await api.moveTask(task.id, { projectId: targetProjectId })
+  }
+  console.log(`Moved: ${task.content}`)
+}
+
 export function registerTaskCommand(program: Command): void {
   const task = program.command('task').description('Manage tasks')
 
@@ -193,4 +243,12 @@ export function registerTaskCommand(program: Command): void {
     .option('--labels <a,b>', 'New labels (replaces existing)')
     .option('--description <text>', 'New description')
     .action(updateTask)
+
+  task
+    .command('move <ref>')
+    .description('Move task to project/section/parent')
+    .option('--project <ref>', 'Target project (name or id:xxx)')
+    .option('--section <ref>', 'Target section (name or id:xxx)')
+    .option('--parent <ref>', 'Parent task (name or id:xxx)')
+    .action(moveTask)
 }

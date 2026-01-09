@@ -1,6 +1,6 @@
 import { TodoistApi } from '@doist/todoist-api-typescript'
 import { formatError } from './output.js'
-import type { Task, Project } from './api.js'
+import type { Task, Project, Section } from './api.js'
 
 export function isIdRef(ref: string): boolean {
   return ref.startsWith('id:')
@@ -80,4 +80,97 @@ export async function resolveProjectRef(api: TodoistApi, ref: string): Promise<P
 export async function resolveProjectId(api: TodoistApi, ref: string): Promise<string> {
   const project = await resolveProjectRef(api, ref)
   return project.id
+}
+
+export async function resolveSectionId(
+  api: TodoistApi,
+  ref: string,
+  projectId: string
+): Promise<string> {
+  const { results: sections } = await api.getSections({ projectId })
+
+  if (isIdRef(ref)) {
+    const id = extractId(ref)
+    const section = sections.find((s) => s.id === id)
+    if (!section) {
+      throw new Error(
+        formatError(
+          'SECTION_NOT_IN_PROJECT',
+          `Section id:${id} does not belong to this project.`
+        )
+      )
+    }
+    return id
+  }
+
+  const lower = ref.toLowerCase()
+  const exact = sections.find((s) => s.name.toLowerCase() === lower)
+  if (exact) return exact.id
+
+  const partial = sections.filter((s) => s.name.toLowerCase().includes(lower))
+  if (partial.length === 1) return partial[0].id
+  if (partial.length > 1) {
+    throw new Error(
+      formatError(
+        'AMBIGUOUS_SECTION',
+        `Multiple sections match "${ref}":`,
+        partial.slice(0, 5).map((s) => `"${s.name}" (id:${s.id})`)
+      )
+    )
+  }
+
+  throw new Error(
+    formatError('SECTION_NOT_FOUND', `Section "${ref}" not found in project.`)
+  )
+}
+
+export async function resolveParentTaskId(
+  api: TodoistApi,
+  ref: string,
+  projectId: string,
+  sectionId?: string
+): Promise<string> {
+  if (isIdRef(ref)) {
+    return extractId(ref)
+  }
+
+  const lower = ref.toLowerCase()
+
+  if (sectionId) {
+    const { results: sectionTasks } = await api.getTasks({ sectionId })
+    const exact = sectionTasks.find((t) => t.content.toLowerCase() === lower)
+    if (exact) return exact.id
+
+    const partial = sectionTasks.filter((t) => t.content.toLowerCase().includes(lower))
+    if (partial.length === 1) return partial[0].id
+    if (partial.length > 1) {
+      throw new Error(
+        formatError(
+          'AMBIGUOUS_PARENT',
+          `Multiple tasks match "${ref}" in section:`,
+          partial.slice(0, 5).map((t) => `"${t.content}" (id:${t.id})`)
+        )
+      )
+    }
+  }
+
+  const { results: projectTasks } = await api.getTasks({ projectId })
+  const exact = projectTasks.find((t) => t.content.toLowerCase() === lower)
+  if (exact) return exact.id
+
+  const partial = projectTasks.filter((t) => t.content.toLowerCase().includes(lower))
+  if (partial.length === 1) return partial[0].id
+  if (partial.length > 1) {
+    throw new Error(
+      formatError(
+        'AMBIGUOUS_PARENT',
+        `Multiple tasks match "${ref}" in project:`,
+        partial.slice(0, 5).map((t) => `"${t.content}" (id:${t.id})`)
+      )
+    )
+  }
+
+  throw new Error(
+    formatError('PARENT_NOT_FOUND', `Parent task "${ref}" not found in project.`)
+  )
 }
