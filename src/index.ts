@@ -14,6 +14,10 @@ program
   .name('td')
   .description('Todoist CLI')
   .version('0.1.0')
+  .addHelpText('after', `
+Note for AI/LLM agents:
+  Use --json or --ndjson flags for unambiguous, parseable output.
+  Default JSON shows essential fields; use --full for all fields.`)
 
 registerAddCommand(program)
 registerTodayCommand(program)
