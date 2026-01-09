@@ -6,8 +6,8 @@ import { registerProjectCommand } from './commands/project.js'
 import { registerLabelCommand } from './commands/label.js'
 import { registerCommentCommand } from './commands/comment.js'
 import { registerSectionCommand } from './commands/section.js'
-import { getApi } from './lib/api.js'
-import { formatDue } from './lib/output.js'
+import { getApi, type Project } from './lib/api.js'
+import { formatDue, formatTaskRow } from './lib/output.js'
 import chalk from 'chalk'
 
 program
@@ -24,6 +24,46 @@ program
     console.log(`Created: ${task.content}`)
     if (task.due) console.log(`Due: ${formatDue(task.due)}`)
     console.log(chalk.dim(`ID: ${task.id}`))
+  })
+
+program
+  .command('today')
+  .description('Show tasks due today and overdue')
+  .action(async () => {
+    const api = await getApi()
+    const { results: tasks } = await api.getTasks()
+    const { results: allProjects } = await api.getProjects()
+    const projects = new Map<string, Project>(allProjects.map((p) => [p.id, p]))
+
+    const today = new Date().toISOString().split('T')[0]
+
+    const overdue = tasks.filter((t) => t.due && t.due.date < today)
+    const dueToday = tasks.filter((t) => t.due?.date === today)
+
+    if (overdue.length === 0 && dueToday.length === 0) {
+      console.log('No tasks due today.')
+      return
+    }
+
+    if (overdue.length === 0) {
+      for (const task of dueToday) {
+        console.log(formatTaskRow(task, projects.get(task.projectId)?.name))
+      }
+      return
+    }
+
+    console.log(chalk.red.bold('Overdue'))
+    for (const task of overdue) {
+      console.log(formatTaskRow(task, projects.get(task.projectId)?.name))
+    }
+
+    if (dueToday.length > 0) {
+      console.log('')
+      console.log(chalk.bold('Today'))
+      for (const task of dueToday) {
+        console.log(formatTaskRow(task, projects.get(task.projectId)?.name))
+      }
+    }
   })
 
 registerTaskCommand(program)
