@@ -14,8 +14,8 @@
 | Filter by assignee | `--assignee <ref>` | On task list commands |
 | Filter unassigned | `--unassigned` | Tasks with no assignee |
 | Show all assignees | `--any-assignee` | Override default filter |
-| Filter by workspace | `--workspace <ref>` | Mutually exclusive with --personal |
-| Filter personal | `--personal` | Non-workspace projects only |
+| Filter by workspace | `--workspace <ref>` | On task commands; mutually exclusive with --personal |
+| Filter personal | `--personal` | On task and project list commands |
 
 ---
 
@@ -27,12 +27,12 @@
 - Examples: `+Andrew W.`, `+Craig M.`, `+Madonna` (single word = no initial)
 - For orphan assignees (removed users): `+330121` (raw ID)
 
-**Project indicators**:
-- Workspace projects: `[WorkspaceName]`
-- Shared personal projects: `[shared]`
+**Project list grouping**:
+- Projects grouped by workspace, with workspace name as header
+- Personal projects listed first, then workspaces sorted alphabetically
+- Shared personal projects: `[shared]` marker
 - Non-shared personal: no indicator
-
-**Project status** (workspace projects only): `[IN_PROGRESS]` - nice-to-have if easy to implement
+- Tip shown at bottom: "Use `td workspace projects <name>` for detailed view with folders"
 
 ### Default Behavior: Today & Upcoming
 
@@ -240,18 +240,26 @@ td task list --unassigned
 
 ### Phase 4: Project Enhancements
 
-#### 4.1 Project Indicators
+#### 4.1 Project List Grouping
 
 ```
 td project list
 
-2323370738  1:1 Paul-Ernesto [shared]
-2355951627  26Q1: Automation [Doist]
-2245415234  🏠 Personal
-2206355491  Inbox
+Personal
+  2245415234  🏠 Personal
+  2206355491  Inbox
+  2323370738  Shared Project [shared]
+
+Acme Corp
+  2355951627  Q1 Planning
+  2345678901  Backend Refactor
+
+Tip: Use `td workspace projects <name>` for a detailed view with folders.
 ```
 
-- Lazy fetch workspace names (only if needed)
+- Personal projects listed first, then workspaces sorted alphabetically
+- `[shared]` marker for shared personal projects
+- Lazy fetch workspace names (only if workspace projects exist)
 
 #### 4.2 `td project collaborators <ref>`
 
@@ -267,28 +275,28 @@ td project collaborators "1:1 Paul-Ernesto"
 
 #### 4.3 Enhanced `td project view`
 
-For workspace projects, show additional info:
+For workspace projects, show workspace and folder info:
 ```
-td project view "26Q1: Automation"
+td project view "Q1 Planning"
 
-26Q1: Automation Acceleration
+Q1 Planning
 
-ID:         2355951627
-Workspace:  Doist
-Folder:     Engineering
-Status:     IN_PROGRESS
-Role:       MEMBER
-...
+ID:        2355951627
+Workspace: Acme Corp
+Folder:    Engineering
+Color:     blue
+Favorite:  Yes
+URL:       https://app.todoist.com/app/project/...
 
-Collaborators (143):
-  Andrew W., Craig M., Paul S., ... and 140 more
-
-Tasks (12):
-  p1  Usage-based limits +Andrew W.
+--- Tasks (12) ---
+  p4  Review budget
   ...
 ```
 
-- Show first N collaborator names + "...and X more"
+For shared personal projects, show shared status:
+```
+Shared:    Yes
+```
 
 **Files**:
 - `src/commands/project.ts`
@@ -301,25 +309,32 @@ Tasks (12):
 #### 5.1 Project Filters
 
 ```bash
-td project list --workspace "Doist"
 td project list --personal
 ```
 
-- Mutually exclusive: error if both specified
+- `--personal` shows only personal (non-workspace) projects
+- `--workspace` not needed on project list (use `td workspace projects <name>` instead)
 
 #### 5.2 Task Filters
 
 ```bash
-td task list --workspace "Doist"
-td today --workspace "Doist"
+td task list --workspace "Acme"
 td task list --personal
+td today --workspace "Acme"
+td today --personal
+td upcoming --workspace "Acme"
+td upcoming --personal
 ```
+
+- `--workspace` and `--personal` are mutually exclusive (error if both specified)
 
 **Files**:
 - `src/commands/project.ts`
 - `src/commands/task.ts`
 - `src/commands/today.ts`
 - `src/commands/upcoming.ts`
+- `src/lib/task-list.ts`
+- `src/lib/refs.ts` (resolveWorkspaceRef moved here)
 
 ---
 
@@ -414,4 +429,5 @@ After each phase, verify:
 
 ## Revision History
 
+- **2026-01-09**: Updated after implementation - project list now groups by workspace instead of inline markers; removed --workspace from project list (redundant with workspace projects command)
 - **2026-01-09**: Comprehensive spec with UX decisions from interview
