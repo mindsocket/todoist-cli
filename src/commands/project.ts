@@ -7,6 +7,7 @@ import chalk from 'chalk'
 interface ListOptions {
   json?: boolean
   ndjson?: boolean
+  full?: boolean
 }
 
 async function listProjects(options: ListOptions): Promise<void> {
@@ -14,12 +15,12 @@ async function listProjects(options: ListOptions): Promise<void> {
   const { results: projects } = await api.getProjects()
 
   if (options.json) {
-    console.log(formatJson(projects))
+    console.log(formatJson(projects, 'project', options.full))
     return
   }
 
   if (options.ndjson) {
-    console.log(formatNdjson(projects))
+    console.log(formatNdjson(projects, 'project', options.full))
     return
   }
 
@@ -89,6 +90,7 @@ export function registerProjectCommand(program: Command): void {
     .description('List all projects')
     .option('--json', 'Output as JSON array')
     .option('--ndjson', 'Output as newline-delimited JSON')
+    .option('--full', 'Include all fields in JSON output')
     .action(listProjects)
 
   project

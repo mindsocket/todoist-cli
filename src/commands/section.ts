@@ -33,6 +33,7 @@ async function resolveProjectId(api: Awaited<ReturnType<typeof getApi>>, nameOrI
 interface ListOptions {
   json?: boolean
   ndjson?: boolean
+  full?: boolean
 }
 
 async function listSections(projectRef: string, options: ListOptions): Promise<void> {
@@ -41,12 +42,12 @@ async function listSections(projectRef: string, options: ListOptions): Promise<v
   const { results: sections } = await api.getSections({ projectId })
 
   if (options.json) {
-    console.log(formatJson(sections))
+    console.log(formatJson(sections, 'section', options.full))
     return
   }
 
   if (options.ndjson) {
-    console.log(formatNdjson(sections))
+    console.log(formatNdjson(sections, 'section', options.full))
     return
   }
 
@@ -98,6 +99,7 @@ export function registerSectionCommand(program: Command): void {
     .description('List sections in a project')
     .option('--json', 'Output as JSON array')
     .option('--ndjson', 'Output as newline-delimited JSON')
+    .option('--full', 'Include all fields in JSON output')
     .action(listSections)
 
   section

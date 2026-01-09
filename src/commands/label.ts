@@ -7,6 +7,7 @@ import chalk from 'chalk'
 interface ListOptions {
   json?: boolean
   ndjson?: boolean
+  full?: boolean
 }
 
 async function listLabels(options: ListOptions): Promise<void> {
@@ -14,12 +15,12 @@ async function listLabels(options: ListOptions): Promise<void> {
   const { results: labels } = await api.getLabels()
 
   if (options.json) {
-    console.log(formatJson(labels))
+    console.log(formatJson(labels, 'label', options.full))
     return
   }
 
   if (options.ndjson) {
-    console.log(formatNdjson(labels))
+    console.log(formatNdjson(labels, 'label', options.full))
     return
   }
 
@@ -89,6 +90,7 @@ export function registerLabelCommand(program: Command): void {
     .description('List all labels')
     .option('--json', 'Output as JSON array')
     .option('--ndjson', 'Output as newline-delimited JSON')
+    .option('--full', 'Include all fields in JSON output')
     .action(listLabels)
 
   label

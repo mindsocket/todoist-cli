@@ -11,6 +11,7 @@ export function registerInboxCommand(program: Command): void {
     .option('--limit <n>', 'Limit number of results', '50')
     .option('--json', 'Output as JSON array')
     .option('--ndjson', 'Output as newline-delimited JSON')
+    .option('--full', 'Include all fields in JSON output')
     .action(async (options: TaskListOptions) => {
       const api = await getApi()
       const user = await api.getUser()

@@ -34,6 +34,7 @@ async function resolveTaskRef(api: Awaited<ReturnType<typeof getApi>>, ref: stri
 interface ListOptions {
   json?: boolean
   ndjson?: boolean
+  full?: boolean
 }
 
 async function listComments(taskRef: string, options: ListOptions): Promise<void> {
@@ -42,12 +43,12 @@ async function listComments(taskRef: string, options: ListOptions): Promise<void
   const { results: comments } = await api.getComments({ taskId: task.id })
 
   if (options.json) {
-    console.log(formatJson(comments))
+    console.log(formatJson(comments, 'comment', options.full))
     return
   }
 
   if (options.ndjson) {
-    console.log(formatNdjson(comments))
+    console.log(formatNdjson(comments, 'comment', options.full))
     return
   }
 
@@ -101,6 +102,7 @@ export function registerCommentCommand(program: Command): void {
     .description('List comments on a task')
     .option('--json', 'Output as JSON array')
     .option('--ndjson', 'Output as newline-delimited JSON')
+    .option('--full', 'Include all fields in JSON output')
     .action(listComments)
 
   comment

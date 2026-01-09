@@ -206,6 +206,7 @@ export function registerTaskCommand(program: Command): void {
     .option('--limit <n>', 'Limit number of results', '50')
     .option('--json', 'Output as JSON array')
     .option('--ndjson', 'Output as newline-delimited JSON')
+    .option('--full', 'Include all fields in JSON output')
     .action(listTasks)
 
   task

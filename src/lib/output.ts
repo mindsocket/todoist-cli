@@ -78,12 +78,53 @@ export function formatTaskView(task: Task, project?: Project, full = false): str
   return lines.join('\n')
 }
 
-export function formatJson<T>(data: T): string {
-  return JSON.stringify(data, null, 2)
+type FieldPicker<T> = (item: T) => Partial<T>
+
+const TASK_ESSENTIAL_FIELDS = ['id', 'content', 'description', 'priority', 'due', 'projectId', 'sectionId', 'parentId', 'labels', 'url'] as const
+const PROJECT_ESSENTIAL_FIELDS = ['id', 'name', 'color', 'isFavorite', 'parentId', 'viewStyle', 'url'] as const
+const LABEL_ESSENTIAL_FIELDS = ['id', 'name', 'color', 'isFavorite'] as const
+const SECTION_ESSENTIAL_FIELDS = ['id', 'name', 'projectId', 'sectionOrder', 'url'] as const
+const COMMENT_ESSENTIAL_FIELDS = ['id', 'content', 'postedAt', 'taskId', 'projectId'] as const
+
+function pickFields<T extends object>(item: T, fields: readonly string[]): Partial<T> {
+  const result: Partial<T> = {}
+  for (const field of fields) {
+    if (field in item) {
+      (result as Record<string, unknown>)[field] = (item as Record<string, unknown>)[field]
+    }
+  }
+  return result
 }
 
-export function formatNdjson<T>(items: T[]): string {
-  return items.map((item) => JSON.stringify(item)).join('\n')
+export type EntityType = 'task' | 'project' | 'label' | 'section' | 'comment'
+
+function getEssentialFields(type: EntityType): readonly string[] {
+  switch (type) {
+    case 'task': return TASK_ESSENTIAL_FIELDS
+    case 'project': return PROJECT_ESSENTIAL_FIELDS
+    case 'label': return LABEL_ESSENTIAL_FIELDS
+    case 'section': return SECTION_ESSENTIAL_FIELDS
+    case 'comment': return COMMENT_ESSENTIAL_FIELDS
+  }
+}
+
+export function formatJson<T extends object>(data: T | T[], type?: EntityType, full = false): string {
+  if (full || !type) {
+    return JSON.stringify(data, null, 2)
+  }
+  const fields = getEssentialFields(type)
+  if (Array.isArray(data)) {
+    return JSON.stringify(data.map((item) => pickFields(item, fields)), null, 2)
+  }
+  return JSON.stringify(pickFields(data, fields), null, 2)
+}
+
+export function formatNdjson<T extends object>(items: T[], type?: EntityType, full = false): string {
+  if (full || !type) {
+    return items.map((item) => JSON.stringify(item)).join('\n')
+  }
+  const fields = getEssentialFields(type)
+  return items.map((item) => JSON.stringify(pickFields(item, fields))).join('\n')
 }
 
 export function formatError(code: string, message: string, hints?: string[]): string {

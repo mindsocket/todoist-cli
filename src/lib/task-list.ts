@@ -10,6 +10,7 @@ export interface TaskListOptions {
   limit?: string
   json?: boolean
   ndjson?: boolean
+  full?: boolean
 }
 
 export function parsePriority(p: string): number {
@@ -122,12 +123,12 @@ export async function listTasksForProject(
   tasks = tasks.slice(0, limit)
 
   if (options.json) {
-    console.log(formatJson(tasks))
+    console.log(formatJson(tasks, 'task', options.full))
     return
   }
 
   if (options.ndjson) {
-    console.log(formatNdjson(tasks))
+    console.log(formatNdjson(tasks, 'task', options.full))
     return
   }
 

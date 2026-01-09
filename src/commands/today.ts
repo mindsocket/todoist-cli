@@ -6,6 +6,7 @@ import chalk from 'chalk'
 interface TodayOptions {
   json?: boolean
   ndjson?: boolean
+  full?: boolean
 }
 
 export function registerTodayCommand(program: Command): void {
@@ -14,6 +15,7 @@ export function registerTodayCommand(program: Command): void {
     .description('Show tasks due today and overdue')
     .option('--json', 'Output as JSON array')
     .option('--ndjson', 'Output as newline-delimited JSON')
+    .option('--full', 'Include all fields in JSON output')
     .action(async (options: TodayOptions) => {
       const api = await getApi()
       const { results: tasks } = await api.getTasks()
@@ -26,12 +28,12 @@ export function registerTodayCommand(program: Command): void {
       const allTodayTasks = [...overdue, ...dueToday]
 
       if (options.json) {
-        console.log(formatJson(allTodayTasks))
+        console.log(formatJson(allTodayTasks, 'task', options.full))
         return
       }
 
       if (options.ndjson) {
-        console.log(formatNdjson(allTodayTasks))
+        console.log(formatNdjson(allTodayTasks, 'task', options.full))
         return
       }
 
