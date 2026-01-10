@@ -8,7 +8,6 @@ Features not yet implemented, organized by priority.
 | ---------------- | -------- | ------------------------------------- |
 | Filters          | Sync API | Custom saved filter views             |
 | Shared labels    | REST API | List/rename/remove shared labels      |
-| Comment update   | REST API | Edit existing comments                |
 | Project comments | REST API | Comments on projects (not just tasks) |
 
 ## Tier 3 - Advanced/Optional

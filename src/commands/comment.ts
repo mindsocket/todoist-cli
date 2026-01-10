@@ -113,6 +113,22 @@ async function deleteComment(
   console.log(`Deleted comment: ${preview}`)
 }
 
+async function updateComment(
+  commentId: string,
+  options: { content: string }
+): Promise<void> {
+  const api = await getApi()
+  const id = requireIdRef(commentId, 'comment')
+  const comment = await api.getComment(id)
+  const oldPreview =
+    comment.content.length > 50
+      ? comment.content.slice(0, 50) + '...'
+      : comment.content
+
+  await api.updateComment(id, { content: options.content })
+  console.log(`Updated comment: ${oldPreview}`)
+}
+
 export function registerCommentCommand(program: Command): void {
   const comment = program.command('comment').description('Manage task comments')
 
@@ -137,4 +153,10 @@ export function registerCommentCommand(program: Command): void {
     .description('Delete a comment')
     .option('--yes', 'Confirm deletion')
     .action(deleteComment)
+
+  comment
+    .command('update <id>')
+    .description('Update a comment')
+    .requiredOption('--content <text>', 'New comment content')
+    .action(updateComment)
 }

@@ -18,6 +18,7 @@ function createMockApi() {
     getComment: vi.fn(),
     addComment: vi.fn(),
     deleteComment: vi.fn(),
+    updateComment: vi.fn(),
   }
 }
 
@@ -264,6 +265,92 @@ describe('comment delete', () => {
 
     expect(mockApi.deleteComment).toHaveBeenCalledWith('comment-123')
     expect(consoleSpy).toHaveBeenCalledWith('Deleted comment: Test comment')
+    consoleSpy.mockRestore()
+  })
+})
+
+describe('comment update', () => {
+  let mockApi: ReturnType<typeof createMockApi>
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockApi = createMockApi()
+    mockGetApi.mockResolvedValue(mockApi as any)
+  })
+
+  it('requires id: prefix', async () => {
+    const program = createProgram()
+
+    await expect(
+      program.parseAsync([
+        'node',
+        'td',
+        'comment',
+        'update',
+        'comment-1',
+        '--content',
+        'New text',
+      ])
+    ).rejects.toThrow('INVALID_REF')
+  })
+
+  it('updates comment content', async () => {
+    const program = createProgram()
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    mockApi.getComment.mockResolvedValue({
+      id: 'comment-123',
+      content: 'Old content',
+    })
+    mockApi.updateComment.mockResolvedValue({
+      id: 'comment-123',
+      content: 'New content',
+    })
+
+    await program.parseAsync([
+      'node',
+      'td',
+      'comment',
+      'update',
+      'id:comment-123',
+      '--content',
+      'New content',
+    ])
+
+    expect(mockApi.updateComment).toHaveBeenCalledWith('comment-123', {
+      content: 'New content',
+    })
+    expect(consoleSpy).toHaveBeenCalledWith('Updated comment: Old content')
+    consoleSpy.mockRestore()
+  })
+
+  it('truncates long content in output', async () => {
+    const program = createProgram()
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    const longContent = 'A'.repeat(60)
+    mockApi.getComment.mockResolvedValue({
+      id: 'comment-123',
+      content: longContent,
+    })
+    mockApi.updateComment.mockResolvedValue({
+      id: 'comment-123',
+      content: 'New content',
+    })
+
+    await program.parseAsync([
+      'node',
+      'td',
+      'comment',
+      'update',
+      'id:comment-123',
+      '--content',
+      'New content',
+    ])
+
+    expect(consoleSpy).toHaveBeenCalledWith(
+      `Updated comment: ${'A'.repeat(50)}...`
+    )
     consoleSpy.mockRestore()
   })
 })
