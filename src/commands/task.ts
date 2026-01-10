@@ -1,6 +1,6 @@
 import { Command } from 'commander'
 import { getApi } from '../lib/api.js'
-import { formatTaskView, formatError } from '../lib/output.js'
+import { formatTaskView, formatError, formatJson } from '../lib/output.js'
 import {
   requireIdRef,
   resolveParentTaskId,
@@ -28,6 +28,7 @@ interface ListOptions extends TaskListOptions {
 
 interface ViewOptions {
   full?: boolean
+  json?: boolean
 }
 
 async function listTasks(options: ListOptions): Promise<void> {
@@ -51,6 +52,11 @@ async function listTasks(options: ListOptions): Promise<void> {
 async function viewTask(ref: string, options: ViewOptions): Promise<void> {
   const api = await getApi()
   const task = await resolveTaskRef(api, ref)
+
+  if (options.json) {
+    console.log(formatJson(task, 'task', options.full))
+    return
+  }
 
   const { results: projects } = await api.getProjects()
   const project = projects.find((p) => p.id === task.projectId)
@@ -274,7 +280,8 @@ export function registerTaskCommand(program: Command): void {
   task
     .command('view <ref>')
     .description('View task details')
-    .option('--full', 'Show all metadata')
+    .option('--json', 'Output as JSON')
+    .option('--full', 'Include all fields in output')
     .action(viewTask)
 
   task
