@@ -1,10 +1,10 @@
 import { Command } from 'commander'
-import { getApi } from '../lib/api.js'
+import { getApi, uploadFile } from '../lib/api.js'
 import {
   formatPaginatedJson,
   formatPaginatedNdjson,
   formatNextCursorFooter,
-  formatError,
+  formatFileSize,
 } from '../lib/output.js'
 import { paginate, LIMITS } from '../lib/pagination.js'
 import { requireIdRef, resolveTaskRef } from '../lib/refs.js'
@@ -16,6 +16,13 @@ interface ListOptions {
   json?: boolean
   ndjson?: boolean
   full?: boolean
+  lines?: string
+}
+
+function truncateContent(content: string, maxLines: number): string {
+  const lines = content.split('\n')
+  if (lines.length <= maxLines) return content
+  return lines.slice(0, maxLines).join('\n') + '\n...'
 }
 
 async function listComments(
@@ -37,10 +44,15 @@ async function listComments(
     { limit: targetLimit }
   )
 
+  const enrichedComments = comments.map((c) => ({
+    ...c,
+    hasAttachment: c.fileAttachment !== null,
+  }))
+
   if (options.json) {
     console.log(
       formatPaginatedJson(
-        { results: comments, nextCursor },
+        { results: enrichedComments, nextCursor },
         'comment',
         options.full
       )
@@ -51,7 +63,7 @@ async function listComments(
   if (options.ndjson) {
     console.log(
       formatPaginatedNdjson(
-        { results: comments, nextCursor },
+        { results: enrichedComments, nextCursor },
         'comment',
         options.full
       )
@@ -64,11 +76,19 @@ async function listComments(
     return
   }
 
+  const maxLines = options.lines ? parseInt(options.lines, 10) : 3
+
   for (const comment of comments) {
     const id = chalk.dim(comment.id)
     const date = chalk.green(comment.postedAt.split('T')[0])
-    console.log(`${id}  ${date}`)
-    console.log(`  ${comment.content}`)
+    const hasAttachment = comment.fileAttachment !== null
+    console.log(
+      `${id}  ${date}${hasAttachment ? '  ' + chalk.blue('[file]') : ''}`
+    )
+    const truncated = truncateContent(comment.content, maxLines)
+    for (const line of truncated.split('\n')) {
+      console.log(`  ${line}`)
+    }
     console.log('')
   }
   console.log(formatNextCursorFooter(nextCursor))
@@ -76,18 +96,42 @@ async function listComments(
 
 interface AddOptions {
   content: string
+  file?: string
 }
 
 async function addComment(taskRef: string, options: AddOptions): Promise<void> {
   const api = await getApi()
   const task = await resolveTaskRef(api, taskRef)
 
+  let attachment:
+    | {
+        fileUrl: string
+        fileName?: string
+        fileType?: string
+        resourceType?: string
+      }
+    | undefined
+
+  if (options.file) {
+    const uploadResult = await uploadFile(options.file)
+    attachment = {
+      fileUrl: uploadResult.fileUrl,
+      fileName: uploadResult.fileName,
+      fileType: uploadResult.fileType,
+      resourceType: uploadResult.resourceType,
+    }
+  }
+
   const comment = await api.addComment({
     taskId: task.id,
     content: options.content,
+    ...(attachment && { attachment }),
   })
 
   console.log(`Added comment to "${task.content}"`)
+  if (attachment) {
+    console.log(chalk.dim(`Attached: ${attachment.fileName}`))
+  }
   console.log(chalk.dim(`ID: ${comment.id}`))
 }
 
@@ -129,6 +173,30 @@ async function updateComment(
   console.log(`Updated comment: ${oldPreview}`)
 }
 
+async function viewComment(commentId: string): Promise<void> {
+  const api = await getApi()
+  const id = requireIdRef(commentId, 'comment')
+  const comment = await api.getComment(id)
+
+  console.log(chalk.bold('Comment'))
+  console.log('')
+  console.log(`ID:      ${comment.id}`)
+  console.log(`Posted:  ${comment.postedAt}`)
+  console.log('')
+  console.log('Content:')
+  console.log(comment.content)
+
+  if (comment.fileAttachment) {
+    const att = comment.fileAttachment
+    console.log('')
+    console.log(chalk.bold('Attachment:'))
+    if (att.fileName) console.log(`  Name:  ${att.fileName}`)
+    if (att.fileSize) console.log(`  Size:  ${formatFileSize(att.fileSize)}`)
+    if (att.fileType) console.log(`  Type:  ${att.fileType}`)
+    if (att.fileUrl) console.log(`  URL:   ${att.fileUrl}`)
+  }
+}
+
 export function registerCommentCommand(program: Command): void {
   const comment = program.command('comment').description('Manage task comments')
 
@@ -140,12 +208,14 @@ export function registerCommentCommand(program: Command): void {
     .option('--json', 'Output as JSON')
     .option('--ndjson', 'Output as newline-delimited JSON')
     .option('--full', 'Include all fields in JSON output')
+    .option('--lines <n>', 'Number of content lines to show (default: 3)')
     .action(listComments)
 
   comment
     .command('add <task>')
     .description('Add a comment to a task')
     .requiredOption('--content <text>', 'Comment content')
+    .option('--file <path>', 'Attach a file to the comment')
     .action(addComment)
 
   comment
@@ -159,4 +229,9 @@ export function registerCommentCommand(program: Command): void {
     .description('Update a comment')
     .requiredOption('--content <text>', 'New comment content')
     .action(updateComment)
+
+  comment
+    .command('view <id>')
+    .description('View a single comment with full details')
+    .action(viewComment)
 }

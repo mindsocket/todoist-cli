@@ -12,14 +12,12 @@ Features not yet implemented, organized by priority.
 
 ## Tier 3 - Advanced/Optional
 
-| Feature             | API       | Notes                           |
-| ------------------- | --------- | ------------------------------- |
-| Templates           | Sync API  | Import/export project templates |
-| Backups             | Sync API  | List and download backups       |
-| File uploads        | Sync API  | Attach files to comments        |
-| Karma/stats         | Sync API  | Productivity tracking           |
-| Webhooks            | REST/Sync | Create webhook subscriptions    |
-| Comment attachments | REST API  | File attachments on comments    |
+| Feature   | API       | Notes                           |
+| --------- | --------- | ------------------------------- |
+| Templates | Sync API  | Import/export project templates |
+| Backups   | Sync API  | List and download backups       |
+| Karma     | Sync API  | Productivity tracking           |
+| Webhooks  | REST/Sync | Create webhook subscriptions    |
 
 ## API Notes
 

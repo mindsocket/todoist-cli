@@ -455,4 +455,55 @@ export async function updateUserSettings(
   await executeSyncCommand(commands)
 }
 
+// File upload types and API (Sync API v9)
+//
+// NOTE: The @doist/todoist-api-typescript SDK provides an uploadFile() method
+// that uses the REST API v1 endpoint (api/v1/uploads). That endpoint returns
+// AUTH_INVALID_TOKEN errors with personal API tokens. The Sync API v9 endpoint
+// (sync/v9/uploads/add) works correctly with personal API tokens.
+
+export interface UploadResult {
+  fileName: string
+  fileSize: number
+  fileType: string
+  fileUrl: string
+  resourceType: string
+  uploadState: string
+}
+
+export async function uploadFile(filePath: string): Promise<UploadResult> {
+  const fs = await import('fs')
+  const path = await import('path')
+
+  const token = await getApiToken()
+  const fileName = path.basename(filePath)
+  const fileBuffer = fs.readFileSync(filePath)
+
+  const formData = new FormData()
+  formData.append('file_name', fileName)
+  formData.append('file', new Blob([fileBuffer]), fileName)
+
+  const response = await fetch('https://api.todoist.com/sync/v9/uploads/add', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  })
+
+  if (!response.ok) {
+    throw new Error(`Upload failed: ${response.status} ${response.statusText}`)
+  }
+
+  const data = await response.json()
+  return {
+    fileName: data.file_name,
+    fileSize: data.file_size,
+    fileType: data.file_type,
+    fileUrl: data.file_url,
+    resourceType: data.resource_type,
+    uploadState: data.upload_state,
+  }
+}
+
 export type { Task, PersonalProject, WorkspaceProject, Section, User }

@@ -30,6 +30,15 @@ export function createMockApi(overrides: Partial<TodoistApi> = {}): TodoistApi {
     getComment: vi.fn(),
     addComment: vi.fn(),
     deleteComment: vi.fn(),
+    // Uploads
+    uploadFile: vi.fn().mockResolvedValue({
+      resourceType: 'file',
+      fileName: 'test.pdf',
+      fileSize: 1024,
+      fileType: 'application/pdf',
+      fileUrl: 'https://cdn.todoist.com/files/test.pdf',
+      uploadState: 'completed',
+    }),
     // User
     getUser: vi.fn(),
     // Activity

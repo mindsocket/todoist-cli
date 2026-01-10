@@ -152,6 +152,8 @@ const COMMENT_ESSENTIAL_FIELDS = [
   'postedAt',
   'taskId',
   'projectId',
+  'fileAttachment',
+  'hasAttachment',
 ] as const
 const REMINDER_ESSENTIAL_FIELDS = [
   'id',
@@ -287,4 +289,10 @@ export function formatPaginatedNdjson<T extends object>(
 export function formatNextCursorFooter(nextCursor: string | null): string {
   if (!nextCursor) return ''
   return chalk.dim(`\n... more items exist. Use --all to fetch everything.`)
+}
+
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }

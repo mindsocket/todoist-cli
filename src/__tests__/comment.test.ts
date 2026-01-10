@@ -3,12 +3,21 @@ import { Command } from 'commander'
 
 vi.mock('../lib/api.js', () => ({
   getApi: vi.fn(),
+  uploadFile: vi.fn().mockResolvedValue({
+    resourceType: 'file',
+    fileName: 'test.pdf',
+    fileSize: 1024,
+    fileType: 'application/pdf',
+    fileUrl: 'https://cdn.todoist.com/files/test.pdf',
+    uploadState: 'completed',
+  }),
 }))
 
-import { getApi } from '../lib/api.js'
+import { getApi, uploadFile } from '../lib/api.js'
 import { registerCommentCommand } from '../commands/comment.js'
 
 const mockGetApi = vi.mocked(getApi)
+const mockUploadFile = vi.mocked(uploadFile)
 
 function createMockApi() {
   return {
@@ -350,6 +359,295 @@ describe('comment update', () => {
 
     expect(consoleSpy).toHaveBeenCalledWith(
       `Updated comment: ${'A'.repeat(50)}...`
+    )
+    consoleSpy.mockRestore()
+  })
+})
+
+describe('comment add with attachment', () => {
+  let mockApi: ReturnType<typeof createMockApi>
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockApi = createMockApi()
+    mockGetApi.mockResolvedValue(mockApi as any)
+  })
+
+  it('uploads file and attaches to comment', async () => {
+    const program = createProgram()
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    mockApi.getTask.mockResolvedValue({ id: 'task-1', content: 'Buy milk' })
+    mockApi.addComment.mockResolvedValue({
+      id: 'comment-new',
+      content: 'See attached',
+    })
+
+    await program.parseAsync([
+      'node',
+      'td',
+      'comment',
+      'add',
+      'id:task-1',
+      '--content',
+      'See attached',
+      '--file',
+      '/path/to/file.pdf',
+    ])
+
+    expect(mockUploadFile).toHaveBeenCalledWith('/path/to/file.pdf')
+    expect(mockApi.addComment).toHaveBeenCalledWith({
+      taskId: 'task-1',
+      content: 'See attached',
+      attachment: {
+        fileUrl: 'https://cdn.todoist.com/files/test.pdf',
+        fileName: 'test.pdf',
+        fileType: 'application/pdf',
+        resourceType: 'file',
+      },
+    })
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Attached: test.pdf')
+    )
+    consoleSpy.mockRestore()
+  })
+
+  it('works without --file flag', async () => {
+    const program = createProgram()
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    mockApi.getTask.mockResolvedValue({ id: 'task-1', content: 'Buy milk' })
+    mockApi.addComment.mockResolvedValue({
+      id: 'comment-new',
+      content: 'Just text',
+    })
+
+    await program.parseAsync([
+      'node',
+      'td',
+      'comment',
+      'add',
+      'id:task-1',
+      '--content',
+      'Just text',
+    ])
+
+    expect(mockUploadFile).not.toHaveBeenCalled()
+    expect(mockApi.addComment).toHaveBeenCalledWith({
+      taskId: 'task-1',
+      content: 'Just text',
+    })
+    consoleSpy.mockRestore()
+  })
+})
+
+describe('comment list with attachments', () => {
+  let mockApi: ReturnType<typeof createMockApi>
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockApi = createMockApi()
+    mockGetApi.mockResolvedValue(mockApi as any)
+  })
+
+  it('shows [file] marker for comments with attachments', async () => {
+    const program = createProgram()
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    mockApi.getTask.mockResolvedValue({ id: 'task-1', content: 'Test' })
+    mockApi.getComments.mockResolvedValue({
+      results: [
+        {
+          id: 'comment-1',
+          content: 'See attached',
+          postedAt: '2026-01-08T10:00:00Z',
+          fileAttachment: {
+            resourceType: 'file',
+            fileName: 'doc.pdf',
+            fileUrl: 'https://cdn.todoist.com/files/doc.pdf',
+          },
+        },
+      ],
+      nextCursor: null,
+    })
+
+    await program.parseAsync(['node', 'td', 'comment', 'list', 'id:task-1'])
+
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[file]'))
+    consoleSpy.mockRestore()
+  })
+
+  it('truncates long content to default 3 lines', async () => {
+    const program = createProgram()
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    mockApi.getTask.mockResolvedValue({ id: 'task-1', content: 'Test' })
+    mockApi.getComments.mockResolvedValue({
+      results: [
+        {
+          id: 'comment-1',
+          content: 'Line 1\nLine 2\nLine 3\nLine 4\nLine 5',
+          postedAt: '2026-01-08T10:00:00Z',
+          fileAttachment: null,
+        },
+      ],
+      nextCursor: null,
+    })
+
+    await program.parseAsync(['node', 'td', 'comment', 'list', 'id:task-1'])
+
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Line 1'))
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Line 2'))
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Line 3'))
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('...'))
+    consoleSpy.mockRestore()
+  })
+
+  it('respects --lines flag', async () => {
+    const program = createProgram()
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    mockApi.getTask.mockResolvedValue({ id: 'task-1', content: 'Test' })
+    mockApi.getComments.mockResolvedValue({
+      results: [
+        {
+          id: 'comment-1',
+          content: 'Line 1\nLine 2\nLine 3',
+          postedAt: '2026-01-08T10:00:00Z',
+          fileAttachment: null,
+        },
+      ],
+      nextCursor: null,
+    })
+
+    await program.parseAsync([
+      'node',
+      'td',
+      'comment',
+      'list',
+      'id:task-1',
+      '--lines',
+      '1',
+    ])
+
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Line 1'))
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('...'))
+    consoleSpy.mockRestore()
+  })
+
+  it('includes hasAttachment in JSON output', async () => {
+    const program = createProgram()
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    mockApi.getTask.mockResolvedValue({ id: 'task-1', content: 'Test' })
+    mockApi.getComments.mockResolvedValue({
+      results: [
+        {
+          id: 'comment-1',
+          content: 'Note',
+          postedAt: '2026-01-08T10:00:00Z',
+          fileAttachment: { resourceType: 'file', fileName: 'doc.pdf' },
+        },
+        {
+          id: 'comment-2',
+          content: 'Another',
+          postedAt: '2026-01-09T10:00:00Z',
+          fileAttachment: null,
+        },
+      ],
+      nextCursor: null,
+    })
+
+    await program.parseAsync([
+      'node',
+      'td',
+      'comment',
+      'list',
+      'id:task-1',
+      '--json',
+    ])
+
+    const output = consoleSpy.mock.calls[0][0]
+    const parsed = JSON.parse(output)
+    expect(parsed.results[0].hasAttachment).toBe(true)
+    expect(parsed.results[1].hasAttachment).toBe(false)
+    consoleSpy.mockRestore()
+  })
+})
+
+describe('comment view', () => {
+  let mockApi: ReturnType<typeof createMockApi>
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockApi = createMockApi()
+    mockGetApi.mockResolvedValue(mockApi as any)
+  })
+
+  it('requires id: prefix', async () => {
+    const program = createProgram()
+
+    await expect(
+      program.parseAsync(['node', 'td', 'comment', 'view', 'comment-1'])
+    ).rejects.toThrow('INVALID_REF')
+  })
+
+  it('shows full comment content', async () => {
+    const program = createProgram()
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    mockApi.getComment.mockResolvedValue({
+      id: 'comment-123',
+      content: 'Full content here\nWith multiple lines\nNo truncation',
+      postedAt: '2026-01-08T10:00:00Z',
+      fileAttachment: null,
+    })
+
+    await program.parseAsync([
+      'node',
+      'td',
+      'comment',
+      'view',
+      'id:comment-123',
+    ])
+
+    expect(mockApi.getComment).toHaveBeenCalledWith('comment-123')
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'Full content here\nWith multiple lines\nNo truncation'
+    )
+    consoleSpy.mockRestore()
+  })
+
+  it('shows attachment details', async () => {
+    const program = createProgram()
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    mockApi.getComment.mockResolvedValue({
+      id: 'comment-123',
+      content: 'See attached',
+      postedAt: '2026-01-08T10:00:00Z',
+      fileAttachment: {
+        resourceType: 'file',
+        fileName: 'document.pdf',
+        fileSize: 1024000,
+        fileType: 'application/pdf',
+        fileUrl: 'https://cdn.todoist.com/files/document.pdf',
+      },
+    })
+
+    await program.parseAsync([
+      'node',
+      'td',
+      'comment',
+      'view',
+      'id:comment-123',
+    ])
+
+    expect(consoleSpy).toHaveBeenCalledWith('  Name:  document.pdf')
+    expect(consoleSpy).toHaveBeenCalledWith('  Size:  1000.0 KB')
+    expect(consoleSpy).toHaveBeenCalledWith('  Type:  application/pdf')
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '  URL:   https://cdn.todoist.com/files/document.pdf'
     )
     consoleSpy.mockRestore()
   })

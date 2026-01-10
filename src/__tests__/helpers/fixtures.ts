@@ -192,6 +192,30 @@ export const fixtures = {
       projectId: undefined,
       postedAt: '2026-01-09T14:30:00Z',
     } as Comment,
+    withAttachment: {
+      ...commentDefaults,
+      id: 'comment-3',
+      content: 'See attached file',
+      taskId: 'task-1',
+      projectId: undefined,
+      postedAt: '2026-01-09T16:00:00Z',
+      fileAttachment: {
+        resourceType: 'file',
+        fileName: 'document.pdf',
+        fileSize: 1024000,
+        fileType: 'application/pdf',
+        fileUrl: 'https://cdn.todoist.com/files/document.pdf',
+        uploadState: 'completed',
+      },
+    } as Comment,
+    multiline: {
+      ...commentDefaults,
+      id: 'comment-4',
+      content: 'Line one\nLine two\nLine three\nLine four\nLine five',
+      taskId: 'task-1',
+      projectId: undefined,
+      postedAt: '2026-01-09T17:00:00Z',
+    } as Comment,
   },
   user: {
     basic: {
