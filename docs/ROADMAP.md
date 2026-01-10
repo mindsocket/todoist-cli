@@ -8,7 +8,6 @@ Features not yet implemented, organized by priority.
 | ---------------- | -------- | --------------------------------------- |
 | Reminders        | Sync API | Time-based and location-based reminders |
 | Filters          | Sync API | Custom saved filter views               |
-| Task duration    | REST API | `duration`, `duration_unit` params      |
 | Task deadline    | REST API | `deadline_date` separate from due       |
 | Shared labels    | REST API | List/rename/remove shared labels        |
 | Comment update   | REST API | Edit existing comments                  |

@@ -1,6 +1,24 @@
 import { Command } from 'commander'
 import { getApi } from '../lib/api.js'
+import { parseDuration } from '../lib/duration.js'
 import { formatTaskView, formatError, formatJson } from '../lib/output.js'
+
+type DurationArgs = { duration?: number; durationUnit?: 'minute' | 'day' }
+
+function applyDuration(args: DurationArgs, durationStr: string): void {
+  const minutes = parseDuration(durationStr)
+  if (minutes === null) {
+    throw new Error(
+      formatError(
+        'INVALID_DURATION',
+        `Invalid duration format: "${durationStr}"`,
+        ['Examples: 30m, 1h, 2h15m, 1 hour 30 minutes']
+      )
+    )
+  }
+  args.duration = minutes
+  args.durationUnit = 'minute'
+}
 import {
   requireIdRef,
   resolveParentTaskId,
@@ -116,6 +134,7 @@ interface AddOptions {
   parent?: string
   description?: string
   assignee?: string
+  duration?: string
 }
 
 async function addTask(options: AddOptions): Promise<void> {
@@ -167,6 +186,10 @@ async function addTask(options: AddOptions): Promise<void> {
     args.assigneeId = await resolveAssigneeId(api, options.assignee, project)
   }
 
+  if (options.duration) {
+    applyDuration(args as DurationArgs, options.duration)
+  }
+
   const task = await api.addTask(args)
   console.log(`Created: ${task.content}`)
   if (task.due) console.log(`Due: ${task.due.string || task.due.date}`)
@@ -181,6 +204,7 @@ interface UpdateOptions {
   description?: string
   assignee?: string
   unassign?: boolean
+  duration?: string
 }
 
 async function updateTask(ref: string, options: UpdateOptions): Promise<void> {
@@ -201,6 +225,10 @@ async function updateTask(ref: string, options: UpdateOptions): Promise<void> {
   } else if (options.assignee) {
     const project = await api.getProject(task.projectId)
     args.assigneeId = await resolveAssigneeId(api, options.assignee, project)
+  }
+
+  if (options.duration) {
+    applyDuration(args as DurationArgs, options.duration)
   }
 
   const updated = await api.updateTask(task.id, args)
@@ -317,6 +345,7 @@ export function registerTaskCommand(program: Command): void {
     .option('--parent <ref>', 'Parent task reference')
     .option('--description <text>', 'Task description')
     .option('--assignee <ref>', 'Assign to user (name, email, id:xxx, or "me")')
+    .option('--duration <time>', 'Duration (e.g., 30m, 1h, 2h15m)')
     .action(addTask)
 
   task
@@ -329,6 +358,7 @@ export function registerTaskCommand(program: Command): void {
     .option('--description <text>', 'New description')
     .option('--assignee <ref>', 'Assign to user (name, email, id:xxx, or "me")')
     .option('--unassign', 'Remove assignee')
+    .option('--duration <time>', 'Duration (e.g., 30m, 1h, 2h15m)')
     .action(updateTask)
 
   task

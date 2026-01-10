@@ -696,6 +696,54 @@ describe('task add', () => {
     expect(consoleSpy).toHaveBeenCalledWith('ID: task-xyz')
     consoleSpy.mockRestore()
   })
+
+  it('adds task with duration', async () => {
+    const program = createProgram()
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    mockApi.addTask.mockResolvedValue({
+      id: 'task-1',
+      content: 'Meeting',
+      due: null,
+    })
+
+    await program.parseAsync([
+      'node',
+      'td',
+      'task',
+      'add',
+      '--content',
+      'Meeting',
+      '--duration',
+      '1h30m',
+    ])
+
+    expect(mockApi.addTask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: 'Meeting',
+        duration: 90,
+        durationUnit: 'minute',
+      })
+    )
+    consoleSpy.mockRestore()
+  })
+
+  it('throws error for invalid duration format', async () => {
+    const program = createProgram()
+
+    await expect(
+      program.parseAsync([
+        'node',
+        'td',
+        'task',
+        'add',
+        '--content',
+        'Task',
+        '--duration',
+        'invalid',
+      ])
+    ).rejects.toThrow('Invalid duration format')
+  })
 })
 
 describe('task update', () => {
@@ -825,6 +873,30 @@ describe('task update', () => {
 
     expect(mockApi.updateTask).toHaveBeenCalledWith('task-1', {
       content: 'Buy oat milk',
+    })
+    consoleSpy.mockRestore()
+  })
+
+  it('updates task duration', async () => {
+    const program = createProgram()
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    mockApi.getTask.mockResolvedValue({ id: 'task-1', content: 'Task' })
+    mockApi.updateTask.mockResolvedValue({ id: 'task-1', content: 'Task' })
+
+    await program.parseAsync([
+      'node',
+      'td',
+      'task',
+      'update',
+      'id:task-1',
+      '--duration',
+      '2h',
+    ])
+
+    expect(mockApi.updateTask).toHaveBeenCalledWith('task-1', {
+      duration: 120,
+      durationUnit: 'minute',
     })
     consoleSpy.mockRestore()
   })

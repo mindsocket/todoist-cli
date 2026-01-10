@@ -1,6 +1,7 @@
 import chalk from 'chalk'
 import type { Task } from '@doist/todoist-api-typescript'
 import type { Project } from './api.js'
+import { formatDuration } from './duration.js'
 
 const PRIORITY_COLORS: Record<number, (s: string) => string> = {
   4: chalk.red, // p1 = priority 4 in API (highest)
@@ -44,6 +45,11 @@ export function formatTaskRow(
   const metaParts = [chalk.dim(`id:${task.id}`), formatPriority(task.priority)]
   const due = formatDue(task.due)
   if (due) metaParts.push(chalk.green(due))
+  if (task.duration) {
+    metaParts.push(
+      chalk.yellow(formatDuration(task.duration.amount, task.duration.unit))
+    )
+  }
   if (projectName) metaParts.push(chalk.cyan(projectName))
   if (assignee) metaParts.push(chalk.magenta(assignee))
   const line2 = '  ' + metaParts.join('  ')
@@ -68,6 +74,12 @@ export function formatTaskView(
 
   if (task.due) {
     lines.push(`Due:      ${formatDue(task.due)}`)
+  }
+
+  if (task.duration) {
+    lines.push(
+      `Duration: ${formatDuration(task.duration.amount, task.duration.unit)}`
+    )
   }
 
   if (task.labels.length > 0) {
@@ -102,6 +114,7 @@ const TASK_ESSENTIAL_FIELDS = [
   'description',
   'priority',
   'due',
+  'duration',
   'projectId',
   'sectionId',
   'parentId',
