@@ -6,7 +6,6 @@ Features not yet implemented, organized by priority.
 
 | Feature       | API      | Notes                            |
 | ------------- | -------- | -------------------------------- |
-| Filters       | Sync API | Custom saved filter views        |
 | Shared labels | REST API | List/rename/remove shared labels |
 
 ## Tier 3 - Advanced/Optional
@@ -20,5 +19,4 @@ Features not yet implemented, organized by priority.
 ## API Notes
 
 - REST API v2 being deprecated February 2026, migrating to v1
-- Filters require Sync API (different patterns)
 - Some features require Pro/Business plan

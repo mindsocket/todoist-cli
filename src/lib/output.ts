@@ -162,6 +162,13 @@ const REMINDER_ESSENTIAL_FIELDS = [
   'due',
   'minuteOffset',
 ] as const
+const FILTER_ESSENTIAL_FIELDS = [
+  'id',
+  'name',
+  'query',
+  'color',
+  'isFavorite',
+] as const
 
 function pickFields<T extends object>(
   item: T,
@@ -185,6 +192,7 @@ export type EntityType =
   | 'section'
   | 'comment'
   | 'reminder'
+  | 'filter'
 
 function getEssentialFields(type: EntityType): readonly string[] {
   switch (type) {
@@ -200,6 +208,8 @@ function getEssentialFields(type: EntityType): readonly string[] {
       return COMMENT_ESSENTIAL_FIELDS
     case 'reminder':
       return REMINDER_ESSENTIAL_FIELDS
+    case 'filter':
+      return FILTER_ESSENTIAL_FIELDS
   }
 }
 

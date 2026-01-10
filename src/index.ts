@@ -16,6 +16,7 @@ import { registerActivityCommand } from './commands/activity.js'
 import { registerReminderCommand } from './commands/reminder.js'
 import { registerSettingsCommand } from './commands/settings.js'
 import { registerStatsCommand } from './commands/stats.js'
+import { registerFilterCommand } from './commands/filter.js'
 
 program
   .name('td')
@@ -44,6 +45,7 @@ registerActivityCommand(program)
 registerReminderCommand(program)
 registerSettingsCommand(program)
 registerStatsCommand(program)
+registerFilterCommand(program)
 
 program.parseAsync().catch((err: Error) => {
   console.error(err.message)

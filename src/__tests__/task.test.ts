@@ -13,6 +13,9 @@ const mockGetApi = vi.mocked(getApi)
 function createMockApi() {
   return {
     getTasks: vi.fn().mockResolvedValue({ results: [], nextCursor: null }),
+    getTasksByFilter: vi
+      .fn()
+      .mockResolvedValue({ results: [], nextCursor: null }),
     getTask: vi.fn(),
     getSections: vi.fn().mockResolvedValue({ results: [] }),
     getProjects: vi.fn().mockResolvedValue({ results: [], nextCursor: null }),
@@ -1454,6 +1457,166 @@ describe('task update --deadline', () => {
     expect(mockApi.updateTask).toHaveBeenCalledWith('task-1', {
       deadlineDate: null,
     })
+    consoleSpy.mockRestore()
+  })
+})
+
+describe('task list --filter', () => {
+  let mockApi: ReturnType<typeof createMockApi>
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockApi = createMockApi()
+    mockGetApi.mockResolvedValue(mockApi as any)
+  })
+
+  it('uses getTasksByFilter when --filter is provided', async () => {
+    const program = createProgram()
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    mockApi.getTasksByFilter.mockResolvedValue({
+      results: [
+        {
+          id: 'task-1',
+          content: 'Overdue task',
+          projectId: 'proj-1',
+          priority: 4,
+          labels: [],
+        },
+      ],
+      nextCursor: null,
+    })
+    mockApi.getProjects.mockResolvedValue({
+      results: [{ id: 'proj-1', name: 'Project' }],
+      nextCursor: null,
+    })
+
+    await program.parseAsync([
+      'node',
+      'td',
+      'task',
+      'list',
+      '--filter',
+      'today | overdue',
+    ])
+
+    expect(mockApi.getTasksByFilter).toHaveBeenCalledWith(
+      expect.objectContaining({ query: 'today | overdue' })
+    )
+    expect(mockApi.getTasks).not.toHaveBeenCalled()
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Overdue task')
+    )
+    consoleSpy.mockRestore()
+  })
+
+  it('does not use getTasksByFilter when --filter is not provided', async () => {
+    const program = createProgram()
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    mockApi.getTasks.mockResolvedValue({
+      results: [
+        {
+          id: 'task-1',
+          content: 'Regular task',
+          projectId: 'proj-1',
+          priority: 1,
+          labels: [],
+        },
+      ],
+      nextCursor: null,
+    })
+    mockApi.getProjects.mockResolvedValue({
+      results: [{ id: 'proj-1', name: 'Project' }],
+      nextCursor: null,
+    })
+
+    await program.parseAsync(['node', 'td', 'task', 'list'])
+
+    expect(mockApi.getTasks).toHaveBeenCalled()
+    expect(mockApi.getTasksByFilter).not.toHaveBeenCalled()
+    consoleSpy.mockRestore()
+  })
+
+  it('outputs JSON with --filter and --json', async () => {
+    const program = createProgram()
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    mockApi.getTasksByFilter.mockResolvedValue({
+      results: [
+        {
+          id: 'task-1',
+          content: 'Filtered task',
+          projectId: 'proj-1',
+          priority: 1,
+          labels: [],
+        },
+      ],
+      nextCursor: null,
+    })
+
+    await program.parseAsync([
+      'node',
+      'td',
+      'task',
+      'list',
+      '--filter',
+      '@work',
+      '--json',
+    ])
+
+    const output = consoleSpy.mock.calls[0][0]
+    const parsed = JSON.parse(output)
+    expect(parsed.results).toBeDefined()
+    expect(parsed.results[0].content).toBe('Filtered task')
+    consoleSpy.mockRestore()
+  })
+
+  it('can combine --filter with other local filters like --priority', async () => {
+    const program = createProgram()
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    mockApi.getTasksByFilter.mockResolvedValue({
+      results: [
+        {
+          id: 'task-1',
+          content: 'High priority',
+          projectId: 'proj-1',
+          priority: 4,
+          labels: [],
+        },
+        {
+          id: 'task-2',
+          content: 'Low priority',
+          projectId: 'proj-1',
+          priority: 1,
+          labels: [],
+        },
+      ],
+      nextCursor: null,
+    })
+    mockApi.getProjects.mockResolvedValue({
+      results: [{ id: 'proj-1', name: 'Project' }],
+      nextCursor: null,
+    })
+
+    await program.parseAsync([
+      'node',
+      'td',
+      'task',
+      'list',
+      '--filter',
+      '@work',
+      '--priority',
+      'p1',
+    ])
+
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining('High priority')
+    )
+    expect(consoleSpy).not.toHaveBeenCalledWith(
+      expect.stringContaining('Low priority')
+    )
     consoleSpy.mockRestore()
   })
 })

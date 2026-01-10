@@ -190,13 +190,32 @@ export async function listTasksForProject(
       ? parseInt(options.limit, 10)
       : LIMITS.tasks
 
-  const { results: tasks, nextCursor } = await paginate(
-    (cursor, limit) =>
-      projectId
-        ? api.getTasks({ projectId, cursor: cursor ?? undefined, limit })
-        : api.getTasks({ cursor: cursor ?? undefined, limit }),
-    { limit: targetLimit, startCursor: options.cursor }
-  )
+  let tasks: Task[]
+  let nextCursor: string | null
+
+  if (options.filter) {
+    const result = await paginate(
+      (cursor, limit) =>
+        api.getTasksByFilter({
+          query: options.filter!,
+          cursor: cursor ?? undefined,
+          limit,
+        }),
+      { limit: targetLimit, startCursor: options.cursor }
+    )
+    tasks = result.results
+    nextCursor = result.nextCursor
+  } else {
+    const result = await paginate(
+      (cursor, limit) =>
+        projectId
+          ? api.getTasks({ projectId, cursor: cursor ?? undefined, limit })
+          : api.getTasks({ cursor: cursor ?? undefined, limit }),
+      { limit: targetLimit, startCursor: options.cursor }
+    )
+    tasks = result.results
+    nextCursor = result.nextCursor
+  }
 
   let filtered = tasks
 
