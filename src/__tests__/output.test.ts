@@ -191,6 +191,19 @@ describe('formatTaskView', () => {
     const result = formatTaskView(task, undefined, false)
     expect(result).not.toContain('Metadata')
   })
+
+  it('shows type for uncompletable tasks', () => {
+    const task = { ...fixtures.tasks.basic, isUncompletable: true }
+    const result = formatTaskView(task)
+    expect(result).toContain('Type:')
+    expect(result).toContain('reference (uncompletable)')
+  })
+
+  it('omits type for completable tasks', () => {
+    const task = { ...fixtures.tasks.basic, isUncompletable: false }
+    const result = formatTaskView(task)
+    expect(result).not.toContain('Type:')
+  })
 })
 
 describe('formatJson', () => {
@@ -213,6 +226,7 @@ describe('formatJson', () => {
     expect(result.content).toBe(task.content)
     expect(result.priority).toBe(task.priority)
     expect(result.projectId).toBe(task.projectId)
+    expect(result.isUncompletable).toBe(task.isUncompletable)
     expect(result).not.toHaveProperty('checked')
   })
 

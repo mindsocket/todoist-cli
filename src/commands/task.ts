@@ -73,6 +73,11 @@ async function completeTask(ref: string): Promise<void> {
     return
   }
 
+  if (task.isUncompletable) {
+    console.log('Task is uncompletable (reference item).')
+    return
+  }
+
   await api.closeTask(task.id)
   console.log(`Completed: ${task.content}`)
 }

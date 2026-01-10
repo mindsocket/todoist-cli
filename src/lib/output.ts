@@ -60,6 +60,9 @@ export function formatTaskView(
   lines.push(`${chalk.bold(task.content)}`)
   lines.push('')
   lines.push(`ID:       ${task.id}`)
+  if (task.isUncompletable) {
+    lines.push(`Type:     reference (uncompletable)`)
+  }
   lines.push(`Priority: ${formatPriority(task.priority)}`)
   lines.push(`Project:  ${project?.name || task.projectId}`)
 
@@ -105,6 +108,7 @@ const TASK_ESSENTIAL_FIELDS = [
   'labels',
   'url',
   'responsibleUid',
+  'isUncompletable',
 ] as const
 const PROJECT_ESSENTIAL_FIELDS = [
   'id',

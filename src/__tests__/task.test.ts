@@ -364,6 +364,26 @@ describe('task complete', () => {
     expect(mockApi.closeTask).toHaveBeenCalledWith('task-1')
     consoleSpy.mockRestore()
   })
+
+  it('blocks completion for uncompletable tasks', async () => {
+    const program = createProgram()
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    mockApi.getTask.mockResolvedValue({
+      id: 'task-1',
+      content: '* Reference item',
+      checked: false,
+      isUncompletable: true,
+    })
+
+    await program.parseAsync(['node', 'td', 'task', 'complete', 'id:task-1'])
+
+    expect(mockApi.closeTask).not.toHaveBeenCalled()
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'Task is uncompletable (reference item).'
+    )
+    consoleSpy.mockRestore()
+  })
 })
 
 describe('task uncomplete', () => {
