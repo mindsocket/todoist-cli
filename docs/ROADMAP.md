@@ -4,11 +4,10 @@ Features not yet implemented, organized by priority.
 
 ## Tier 2 - Power User Features
 
-| Feature          | API      | Notes                                 |
-| ---------------- | -------- | ------------------------------------- |
-| Filters          | Sync API | Custom saved filter views             |
-| Shared labels    | REST API | List/rename/remove shared labels      |
-| Project comments | REST API | Comments on projects (not just tasks) |
+| Feature       | API      | Notes                            |
+| ------------- | -------- | -------------------------------- |
+| Filters       | Sync API | Custom saved filter views        |
+| Shared labels | REST API | List/rename/remove shared labels |
 
 ## Tier 3 - Advanced/Optional
 

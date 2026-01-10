@@ -23,6 +23,8 @@ function createMockApi() {
   return {
     getTasks: vi.fn().mockResolvedValue({ results: [], nextCursor: null }),
     getTask: vi.fn(),
+    getProjects: vi.fn().mockResolvedValue({ results: [], nextCursor: null }),
+    getProject: vi.fn(),
     getComments: vi.fn().mockResolvedValue({ results: [], nextCursor: null }),
     getComment: vi.fn(),
     addComment: vi.fn(),
@@ -649,6 +651,152 @@ describe('comment view', () => {
     expect(consoleSpy).toHaveBeenCalledWith(
       '  URL:   https://cdn.todoist.com/files/document.pdf'
     )
+    consoleSpy.mockRestore()
+  })
+})
+
+describe('project comment list', () => {
+  let mockApi: ReturnType<typeof createMockApi>
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockApi = createMockApi()
+    mockGetApi.mockResolvedValue(mockApi as any)
+  })
+
+  it('lists comments on a project with --project flag', async () => {
+    const program = createProgram()
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    mockApi.getProject.mockResolvedValue({ id: 'proj-1', name: 'Work' })
+    mockApi.getComments.mockResolvedValue({
+      results: [
+        {
+          id: 'comment-1',
+          content: 'Project note',
+          postedAt: '2026-01-08T10:00:00Z',
+          fileAttachment: null,
+        },
+      ],
+      nextCursor: null,
+    })
+
+    await program.parseAsync([
+      'node',
+      'td',
+      'comment',
+      'list',
+      'id:proj-1',
+      '--project',
+    ])
+
+    expect(mockApi.getComments).toHaveBeenCalledWith(
+      expect.objectContaining({ projectId: 'proj-1' })
+    )
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Project note')
+    )
+    consoleSpy.mockRestore()
+  })
+
+  it('resolves project by name with --project flag', async () => {
+    const program = createProgram()
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    mockApi.getProjects.mockResolvedValue({
+      results: [{ id: 'proj-1', name: 'Work' }],
+      nextCursor: null,
+    })
+    mockApi.getComments.mockResolvedValue({ results: [], nextCursor: null })
+
+    await program.parseAsync([
+      'node',
+      'td',
+      'comment',
+      'list',
+      'Work',
+      '--project',
+    ])
+
+    expect(mockApi.getComments).toHaveBeenCalledWith(
+      expect.objectContaining({ projectId: 'proj-1' })
+    )
+    consoleSpy.mockRestore()
+  })
+})
+
+describe('project comment add', () => {
+  let mockApi: ReturnType<typeof createMockApi>
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockApi = createMockApi()
+    mockGetApi.mockResolvedValue(mockApi as any)
+  })
+
+  it('adds comment to project with --project flag', async () => {
+    const program = createProgram()
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    mockApi.getProject.mockResolvedValue({ id: 'proj-1', name: 'Work' })
+    mockApi.addComment.mockResolvedValue({
+      id: 'comment-new',
+      content: 'Project note',
+    })
+
+    await program.parseAsync([
+      'node',
+      'td',
+      'comment',
+      'add',
+      'id:proj-1',
+      '--project',
+      '--content',
+      'Project note',
+    ])
+
+    expect(mockApi.addComment).toHaveBeenCalledWith({
+      projectId: 'proj-1',
+      content: 'Project note',
+    })
+    expect(consoleSpy).toHaveBeenCalledWith('Added comment to "Work"')
+    consoleSpy.mockRestore()
+  })
+
+  it('adds comment with attachment to project', async () => {
+    const program = createProgram()
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    mockApi.getProject.mockResolvedValue({ id: 'proj-1', name: 'Work' })
+    mockApi.addComment.mockResolvedValue({
+      id: 'comment-new',
+      content: 'See attached',
+    })
+
+    await program.parseAsync([
+      'node',
+      'td',
+      'comment',
+      'add',
+      'id:proj-1',
+      '--project',
+      '--content',
+      'See attached',
+      '--file',
+      '/path/to/file.pdf',
+    ])
+
+    expect(mockUploadFile).toHaveBeenCalledWith('/path/to/file.pdf')
+    expect(mockApi.addComment).toHaveBeenCalledWith({
+      projectId: 'proj-1',
+      content: 'See attached',
+      attachment: {
+        fileUrl: 'https://cdn.todoist.com/files/test.pdf',
+        fileName: 'test.pdf',
+        fileType: 'application/pdf',
+        resourceType: 'file',
+      },
+    })
     consoleSpy.mockRestore()
   })
 })

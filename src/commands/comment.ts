@@ -7,7 +7,7 @@ import {
   formatFileSize,
 } from '../lib/output.js'
 import { paginate, LIMITS } from '../lib/pagination.js'
-import { requireIdRef, resolveTaskRef } from '../lib/refs.js'
+import { requireIdRef, resolveTaskRef, resolveProjectRef } from '../lib/refs.js'
 import chalk from 'chalk'
 
 interface ListOptions {
@@ -17,6 +17,7 @@ interface ListOptions {
   ndjson?: boolean
   full?: boolean
   lines?: string
+  project?: boolean
 }
 
 function truncateContent(content: string, maxLines: number): string {
@@ -25,12 +26,17 @@ function truncateContent(content: string, maxLines: number): string {
   return lines.slice(0, maxLines).join('\n') + '\n...'
 }
 
-async function listComments(
-  taskRef: string,
-  options: ListOptions
-): Promise<void> {
+async function listComments(ref: string, options: ListOptions): Promise<void> {
   const api = await getApi()
-  const task = await resolveTaskRef(api, taskRef)
+
+  let queryArgs: { taskId: string } | { projectId: string }
+  if (options.project) {
+    const project = await resolveProjectRef(api, ref)
+    queryArgs = { projectId: project.id }
+  } else {
+    const task = await resolveTaskRef(api, ref)
+    queryArgs = { taskId: task.id }
+  }
 
   const targetLimit = options.all
     ? Number.MAX_SAFE_INTEGER
@@ -40,7 +46,7 @@ async function listComments(
 
   const { results: comments, nextCursor } = await paginate(
     (cursor, limit) =>
-      api.getComments({ taskId: task.id, cursor: cursor ?? undefined, limit }),
+      api.getComments({ ...queryArgs, cursor: cursor ?? undefined, limit }),
     { limit: targetLimit }
   )
 
@@ -97,11 +103,23 @@ async function listComments(
 interface AddOptions {
   content: string
   file?: string
+  project?: boolean
 }
 
-async function addComment(taskRef: string, options: AddOptions): Promise<void> {
+async function addComment(ref: string, options: AddOptions): Promise<void> {
   const api = await getApi()
-  const task = await resolveTaskRef(api, taskRef)
+
+  let targetArgs: { taskId: string } | { projectId: string }
+  let targetName: string
+  if (options.project) {
+    const project = await resolveProjectRef(api, ref)
+    targetArgs = { projectId: project.id }
+    targetName = project.name
+  } else {
+    const task = await resolveTaskRef(api, ref)
+    targetArgs = { taskId: task.id }
+    targetName = task.content
+  }
 
   let attachment:
     | {
@@ -123,12 +141,12 @@ async function addComment(taskRef: string, options: AddOptions): Promise<void> {
   }
 
   const comment = await api.addComment({
-    taskId: task.id,
+    ...targetArgs,
     content: options.content,
     ...(attachment && { attachment }),
   })
 
-  console.log(`Added comment to "${task.content}"`)
+  console.log(`Added comment to "${targetName}"`)
   if (attachment) {
     console.log(chalk.dim(`Attached: ${attachment.fileName}`))
   }
@@ -198,11 +216,12 @@ async function viewComment(commentId: string): Promise<void> {
 }
 
 export function registerCommentCommand(program: Command): void {
-  const comment = program.command('comment').description('Manage task comments')
+  const comment = program.command('comment').description('Manage comments')
 
   comment
-    .command('list <task>')
-    .description('List comments on a task')
+    .command('list <ref>')
+    .description('List comments on a task (or project with --project)')
+    .option('-P, --project', 'Target a project instead of a task')
     .option('--limit <n>', 'Limit number of results (default: 10)')
     .option('--all', 'Fetch all results (no limit)')
     .option('--json', 'Output as JSON')
@@ -212,8 +231,9 @@ export function registerCommentCommand(program: Command): void {
     .action(listComments)
 
   comment
-    .command('add <task>')
-    .description('Add a comment to a task')
+    .command('add <ref>')
+    .description('Add a comment to a task (or project with --project)')
+    .option('-P, --project', 'Target a project instead of a task')
     .requiredOption('--content <text>', 'Comment content')
     .option('--file <path>', 'Attach a file to the comment')
     .action(addComment)
