@@ -155,8 +155,7 @@ async function updateFilterCmd(
   if (options.name) args.name = options.name
   if (options.query) args.query = options.query
   if (options.color) args.color = options.color
-  if (options.favorite === true) args.isFavorite = true
-  if (options.favorite === false) args.isFavorite = false
+  if (options.favorite !== undefined) args.isFavorite = options.favorite
 
   if (Object.keys(args).length === 0) {
     throw new Error(formatError('NO_CHANGES', 'No changes specified.'))

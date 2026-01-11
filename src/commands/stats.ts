@@ -8,9 +8,14 @@ import {
 import chalk from 'chalk'
 
 function formatTrend(trend: string): string {
-  if (trend === 'up') return chalk.green('\u2191')
-  if (trend === 'down') return chalk.red('\u2193')
-  return ''
+  switch (trend) {
+    case 'up':
+      return chalk.green('\u2191')
+    case 'down':
+      return chalk.red('\u2193')
+    default:
+      return ''
+  }
 }
 
 function formatStreak(current: Streak, max: Streak): string {

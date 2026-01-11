@@ -111,8 +111,6 @@ export function formatTaskView(
   return lines.join('\n')
 }
 
-type FieldPicker<T> = (item: T) => Partial<T>
-
 const TASK_ESSENTIAL_FIELDS = [
   'id',
   'content',
