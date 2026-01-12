@@ -134,32 +134,56 @@ export function registerSectionCommand(program: Command): void {
     .command('section')
     .description('Manage project sections')
 
-  section
-    .command('list <project>')
+  const listCmd = section
+    .command('list [project]')
     .description('List sections in a project')
     .option('--limit <n>', 'Limit number of results (default: 300)')
     .option('--all', 'Fetch all results (no limit)')
     .option('--json', 'Output as JSON')
     .option('--ndjson', 'Output as newline-delimited JSON')
     .option('--full', 'Include all fields in JSON output')
-    .action(listSections)
+    .action((project, options) => {
+      if (!project) {
+        listCmd.help()
+        return
+      }
+      return listSections(project, options)
+    })
 
-  section
+  const createCmd = section
     .command('create')
     .description('Create a section')
-    .requiredOption('--name <name>', 'Section name')
-    .requiredOption('--project <name>', 'Project name or id:xxx')
-    .action(createSection)
+    .option('--name <name>', 'Section name (required)')
+    .option('--project <name>', 'Project name or id:xxx (required)')
+    .action((options) => {
+      if (!options.name || !options.project) {
+        createCmd.help()
+        return
+      }
+      return createSection(options)
+    })
 
-  section
-    .command('delete <id>')
+  const deleteCmd = section
+    .command('delete [id]')
     .description('Delete a section')
     .option('--yes', 'Confirm deletion')
-    .action(deleteSection)
+    .action((id, options) => {
+      if (!id) {
+        deleteCmd.help()
+        return
+      }
+      return deleteSection(id, options)
+    })
 
-  section
-    .command('update <id>')
+  const updateCmd = section
+    .command('update [id]')
     .description('Update a section')
-    .requiredOption('--name <name>', 'New section name')
-    .action(updateSection)
+    .option('--name <name>', 'New section name (required)')
+    .action((id, options) => {
+      if (!id || !options.name) {
+        updateCmd.help()
+        return
+      }
+      return updateSection(id, options)
+    })
 }

@@ -339,13 +339,19 @@ export function registerTaskCommand(program: Command): void {
     .option('--raw', 'Disable markdown rendering')
     .action(listTasks)
 
-  task
-    .command('view <ref>')
+  const viewCmd = task
+    .command('view [ref]')
     .description('View task details')
     .option('--json', 'Output as JSON')
     .option('--full', 'Include all fields in output')
     .option('--raw', 'Disable markdown rendering')
-    .action(viewTask)
+    .action((ref, options) => {
+      if (!ref) {
+        viewCmd.help()
+        return
+      }
+      return viewTask(ref, options)
+    })
 
   const completeCmd = task
     .command('complete [ref]')
@@ -362,21 +368,33 @@ export function registerTaskCommand(program: Command): void {
       return completeTask(ref, options)
     })
 
-  task
-    .command('uncomplete <ref>')
+  const uncompleteCmd = task
+    .command('uncomplete [ref]')
     .description('Reopen a completed task (requires id:xxx)')
-    .action(uncompleteTask)
+    .action((ref) => {
+      if (!ref) {
+        uncompleteCmd.help()
+        return
+      }
+      return uncompleteTask(ref)
+    })
 
-  task
-    .command('delete <ref>')
+  const deleteCmd = task
+    .command('delete [ref]')
     .description('Delete a task')
     .option('--yes', 'Confirm deletion')
-    .action(deleteTask)
+    .action((ref, options) => {
+      if (!ref) {
+        deleteCmd.help()
+        return
+      }
+      return deleteTask(ref, options)
+    })
 
-  task
+  const addCmd = task
     .command('add')
     .description('Add a task with explicit flags')
-    .requiredOption('--content <text>', 'Task content')
+    .option('--content <text>', 'Task content (required)')
     .option('--due <date>', 'Due date (natural language or YYYY-MM-DD)')
     .option('--deadline <date>', 'Deadline date (YYYY-MM-DD)')
     .option('--priority <p1-p4>', 'Priority level')
@@ -387,10 +405,16 @@ export function registerTaskCommand(program: Command): void {
     .option('--description <text>', 'Task description')
     .option('--assignee <ref>', 'Assign to user (name, email, id:xxx, or "me")')
     .option('--duration <time>', 'Duration (e.g., 30m, 1h, 2h15m)')
-    .action(addTask)
+    .action((options) => {
+      if (!options.content) {
+        addCmd.help()
+        return
+      }
+      return addTask(options)
+    })
 
-  task
-    .command('update <ref>')
+  const updateCmd = task
+    .command('update [ref]')
     .description('Update a task')
     .option('--content <text>', 'New content')
     .option('--due <date>', 'New due date')
@@ -402,13 +426,25 @@ export function registerTaskCommand(program: Command): void {
     .option('--assignee <ref>', 'Assign to user (name, email, id:xxx, or "me")')
     .option('--unassign', 'Remove assignee')
     .option('--duration <time>', 'Duration (e.g., 30m, 1h, 2h15m)')
-    .action(updateTask)
+    .action((ref, options) => {
+      if (!ref) {
+        updateCmd.help()
+        return
+      }
+      return updateTask(ref, options)
+    })
 
-  task
-    .command('move <ref>')
+  const moveCmd = task
+    .command('move [ref]')
     .description('Move task to project/section/parent')
     .option('--project <ref>', 'Target project (name or id:xxx)')
     .option('--section <ref>', 'Target section (name or id:xxx)')
     .option('--parent <ref>', 'Parent task (name or id:xxx)')
-    .action(moveTask)
+    .action((ref, options) => {
+      if (!ref) {
+        moveCmd.help()
+        return
+      }
+      return moveTask(ref, options)
+    })
 }

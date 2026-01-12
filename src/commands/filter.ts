@@ -285,33 +285,54 @@ export function registerFilterCommand(program: Command): void {
     .option('--full', 'Include all fields in JSON output')
     .action(listFilters)
 
-  filter
+  const createCmd = filter
     .command('create')
     .description('Create a filter')
-    .requiredOption('--name <name>', 'Filter name')
-    .requiredOption('--query <query>', 'Filter query (e.g., "today | overdue")')
+    .option('--name <name>', 'Filter name (required)')
+    .option(
+      '--query <query>',
+      'Filter query (required, e.g., "today | overdue")'
+    )
     .option('--color <color>', 'Filter color')
     .option('--favorite', 'Mark as favorite')
-    .action(createFilter)
+    .action((options) => {
+      if (!options.name || !options.query) {
+        createCmd.help()
+        return
+      }
+      return createFilter(options)
+    })
 
-  filter
-    .command('delete <ref>')
+  const deleteCmd = filter
+    .command('delete [ref]')
     .description('Delete a filter')
     .option('--yes', 'Confirm deletion')
-    .action(deleteFilterCmd)
+    .action((ref, options) => {
+      if (!ref) {
+        deleteCmd.help()
+        return
+      }
+      return deleteFilterCmd(ref, options)
+    })
 
-  filter
-    .command('update <ref>')
+  const updateCmd = filter
+    .command('update [ref]')
     .description('Update a filter')
     .option('--name <name>', 'New name')
     .option('--query <query>', 'New query')
     .option('--color <color>', 'New color')
     .option('--favorite', 'Mark as favorite')
     .option('--no-favorite', 'Remove from favorites')
-    .action(updateFilterCmd)
+    .action((ref, options) => {
+      if (!ref) {
+        updateCmd.help()
+        return
+      }
+      return updateFilterCmd(ref, options)
+    })
 
-  filter
-    .command('show <ref>')
+  const showCmd = filter
+    .command('show [ref]')
     .description('Show tasks matching a filter')
     .option('--limit <n>', 'Limit number of results (default: 300)')
     .option('--cursor <cursor>', 'Continue from cursor')
@@ -319,5 +340,11 @@ export function registerFilterCommand(program: Command): void {
     .option('--json', 'Output as JSON')
     .option('--ndjson', 'Output as newline-delimited JSON')
     .option('--full', 'Include all fields in JSON output')
-    .action(showFilter)
+    .action((ref, options) => {
+      if (!ref) {
+        showCmd.help()
+        return
+      }
+      return showFilter(ref, options)
+    })
 }

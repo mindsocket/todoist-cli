@@ -291,31 +291,55 @@ export function registerReminderCommand(program: Command): void {
     .command('reminder')
     .description('Manage task reminders')
 
-  reminder
-    .command('list <task>')
+  const listCmd = reminder
+    .command('list [task]')
     .description('List reminders for a task')
     .option('--json', 'Output as JSON')
     .option('--ndjson', 'Output as newline-delimited JSON')
     .option('--full', 'Include all fields in JSON output')
-    .action(listReminders)
+    .action((task, options) => {
+      if (!task) {
+        listCmd.help()
+        return
+      }
+      return listReminders(task, options)
+    })
 
-  reminder
-    .command('add <task>')
+  const addCmd = reminder
+    .command('add [task]')
     .description('Add a reminder to a task')
     .option('--before <duration>', 'Time before due (e.g., 30m, 1h)')
     .option('--at <datetime>', 'Specific time (e.g., 2024-01-15 10:00)')
-    .action(addReminder)
+    .action((task, options) => {
+      if (!task) {
+        addCmd.help()
+        return
+      }
+      return addReminder(task, options)
+    })
 
-  reminder
-    .command('update <id>')
+  const updateCmd = reminder
+    .command('update [id]')
     .description('Update a reminder')
     .option('--before <duration>', 'Time before due (e.g., 30m, 1h)')
     .option('--at <datetime>', 'Specific time (e.g., 2024-01-15 10:00)')
-    .action(updateReminderCmd)
+    .action((id, options) => {
+      if (!id) {
+        updateCmd.help()
+        return
+      }
+      return updateReminderCmd(id, options)
+    })
 
-  reminder
-    .command('delete <id>')
+  const deleteCmd = reminder
+    .command('delete [id]')
     .description('Delete a reminder')
     .option('--yes', 'Confirm deletion')
-    .action(deleteReminderCmd)
+    .action((id, options) => {
+      if (!id) {
+        deleteCmd.help()
+        return
+      }
+      return deleteReminderCmd(id, options)
+    })
 }

@@ -196,26 +196,44 @@ export function registerLabelCommand(program: Command): void {
     .option('--full', 'Include all fields in JSON output')
     .action(listLabels)
 
-  label
+  const createCmd = label
     .command('create')
     .description('Create a label')
-    .requiredOption('--name <name>', 'Label name')
+    .option('--name <name>', 'Label name (required)')
     .option('--color <color>', 'Label color')
     .option('--favorite', 'Mark as favorite')
-    .action(createLabel)
+    .action((options) => {
+      if (!options.name) {
+        createCmd.help()
+        return
+      }
+      return createLabel(options)
+    })
 
-  label
-    .command('delete <name>')
+  const deleteCmd = label
+    .command('delete [name]')
     .description('Delete a label')
     .option('--yes', 'Confirm deletion')
-    .action(deleteLabel)
+    .action((name, options) => {
+      if (!name) {
+        deleteCmd.help()
+        return
+      }
+      return deleteLabel(name, options)
+    })
 
-  label
-    .command('update <ref>')
+  const updateCmd = label
+    .command('update [ref]')
     .description('Update a label')
     .option('--name <name>', 'New name')
     .option('--color <color>', 'New color')
     .option('--favorite', 'Mark as favorite')
     .option('--no-favorite', 'Remove from favorites')
-    .action(updateLabel)
+    .action((ref, options) => {
+      if (!ref) {
+        updateCmd.help()
+        return
+      }
+      return updateLabel(ref, options)
+    })
 }

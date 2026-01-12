@@ -346,13 +346,19 @@ export function registerWorkspaceCommand(program: Command): void {
     .option('--full', 'Include all fields in JSON output')
     .action(listWorkspaces)
 
-  workspace
-    .command('view <ref>')
+  const viewCmd = workspace
+    .command('view [ref]')
     .description('View workspace details')
-    .action(viewWorkspace)
+    .action((ref) => {
+      if (!ref) {
+        viewCmd.help()
+        return
+      }
+      return viewWorkspace(ref)
+    })
 
-  workspace
-    .command('projects <ref>')
+  const projectsCmd = workspace
+    .command('projects [ref]')
     .description('List projects in a workspace')
     .option('--limit <n>', 'Limit number of results')
     .option('--cursor <cursor>', 'Continue from cursor')
@@ -360,10 +366,16 @@ export function registerWorkspaceCommand(program: Command): void {
     .option('--json', 'Output as JSON')
     .option('--ndjson', 'Output as newline-delimited JSON')
     .option('--full', 'Include all fields in JSON output')
-    .action(listWorkspaceProjects)
+    .action((ref, options) => {
+      if (!ref) {
+        projectsCmd.help()
+        return
+      }
+      return listWorkspaceProjects(ref, options)
+    })
 
-  workspace
-    .command('users <ref>')
+  const usersCmd = workspace
+    .command('users [ref]')
     .description('List users in a workspace')
     .option(
       '--role <roles>',
@@ -375,5 +387,11 @@ export function registerWorkspaceCommand(program: Command): void {
     .option('--json', 'Output as JSON')
     .option('--ndjson', 'Output as newline-delimited JSON')
     .option('--full', 'Include all fields in JSON output')
-    .action(listWorkspaceUsers)
+    .action((ref, options) => {
+      if (!ref) {
+        usersCmd.help()
+        return
+      }
+      return listWorkspaceUsers(ref, options)
+    })
 }

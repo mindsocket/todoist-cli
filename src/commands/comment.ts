@@ -233,8 +233,8 @@ async function viewComment(
 export function registerCommentCommand(program: Command): void {
   const comment = program.command('comment').description('Manage comments')
 
-  comment
-    .command('list <ref>')
+  const listCmd = comment
+    .command('list [ref]')
     .description('List comments on a task (or project with --project)')
     .option('-P, --project', 'Target a project instead of a task')
     .option('--limit <n>', 'Limit number of results (default: 10)')
@@ -244,31 +244,61 @@ export function registerCommentCommand(program: Command): void {
     .option('--full', 'Include all fields in JSON output')
     .option('--lines <n>', 'Number of content lines to show (default: 3)')
     .option('--raw', 'Disable markdown rendering')
-    .action(listComments)
+    .action((ref, options) => {
+      if (!ref) {
+        listCmd.help()
+        return
+      }
+      return listComments(ref, options)
+    })
 
-  comment
-    .command('add <ref>')
+  const addCmd = comment
+    .command('add [ref]')
     .description('Add a comment to a task (or project with --project)')
     .option('-P, --project', 'Target a project instead of a task')
-    .requiredOption('--content <text>', 'Comment content')
+    .option('--content <text>', 'Comment content (required)')
     .option('--file <path>', 'Attach a file to the comment')
-    .action(addComment)
+    .action((ref, options) => {
+      if (!ref || !options.content) {
+        addCmd.help()
+        return
+      }
+      return addComment(ref, options)
+    })
 
-  comment
-    .command('delete <id>')
+  const deleteCmd = comment
+    .command('delete [id]')
     .description('Delete a comment')
     .option('--yes', 'Confirm deletion')
-    .action(deleteComment)
+    .action((id, options) => {
+      if (!id) {
+        deleteCmd.help()
+        return
+      }
+      return deleteComment(id, options)
+    })
 
-  comment
-    .command('update <id>')
+  const updateCmd = comment
+    .command('update [id]')
     .description('Update a comment')
-    .requiredOption('--content <text>', 'New comment content')
-    .action(updateComment)
+    .option('--content <text>', 'New comment content (required)')
+    .action((id, options) => {
+      if (!id || !options.content) {
+        updateCmd.help()
+        return
+      }
+      return updateComment(id, options)
+    })
 
-  comment
-    .command('view <id>')
+  const viewCmd = comment
+    .command('view [id]')
     .description('View a single comment with full details')
     .option('--raw', 'Disable markdown rendering')
-    .action(viewComment)
+    .action((id, options) => {
+      if (!id) {
+        viewCmd.help()
+        return
+      }
+      return viewComment(id, options)
+    })
 }

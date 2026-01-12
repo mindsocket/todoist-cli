@@ -367,49 +367,91 @@ export function registerProjectCommand(program: Command): void {
     .option('--full', 'Include all fields in JSON output')
     .action(listProjects)
 
-  project
-    .command('view <ref>')
+  const viewCmd = project
+    .command('view [ref]')
     .description('View project details')
-    .action(viewProject)
+    .action((ref) => {
+      if (!ref) {
+        viewCmd.help()
+        return
+      }
+      return viewProject(ref)
+    })
 
-  project
-    .command('collaborators <ref>')
+  const collaboratorsCmd = project
+    .command('collaborators [ref]')
     .description('List project collaborators')
-    .action(listCollaborators)
+    .action((ref) => {
+      if (!ref) {
+        collaboratorsCmd.help()
+        return
+      }
+      return listCollaborators(ref)
+    })
 
-  project
-    .command('delete <ref>')
+  const deleteCmd = project
+    .command('delete [ref]')
     .description('Delete a project (must have no uncompleted tasks)')
     .option('--yes', 'Confirm deletion')
-    .action(deleteProject)
+    .action((ref, options) => {
+      if (!ref) {
+        deleteCmd.help()
+        return
+      }
+      return deleteProject(ref, options)
+    })
 
-  project
+  const createCmd = project
     .command('create')
     .description('Create a project')
-    .requiredOption('--name <name>', 'Project name')
+    .option('--name <name>', 'Project name (required)')
     .option('--color <color>', 'Project color')
     .option('--favorite', 'Mark as favorite')
     .option('--parent <ref>', 'Parent project (name or id:xxx)')
     .option('--view-style <style>', 'View style (list or board)')
-    .action(createProject)
+    .action((options) => {
+      if (!options.name) {
+        createCmd.help()
+        return
+      }
+      return createProject(options)
+    })
 
-  project
-    .command('update <ref>')
+  const updateCmd = project
+    .command('update [ref]')
     .description('Update a project')
     .option('--name <name>', 'New name')
     .option('--color <color>', 'New color')
     .option('--favorite', 'Mark as favorite')
     .option('--no-favorite', 'Remove from favorites')
     .option('--view-style <style>', 'View style (list or board)')
-    .action(updateProject)
+    .action((ref, options) => {
+      if (!ref) {
+        updateCmd.help()
+        return
+      }
+      return updateProject(ref, options)
+    })
 
-  project
-    .command('archive <ref>')
+  const archiveCmd = project
+    .command('archive [ref]')
     .description('Archive a project')
-    .action(archiveProject)
+    .action((ref) => {
+      if (!ref) {
+        archiveCmd.help()
+        return
+      }
+      return archiveProject(ref)
+    })
 
-  project
-    .command('unarchive <ref>')
+  const unarchiveCmd = project
+    .command('unarchive [ref]')
     .description('Unarchive a project')
-    .action(unarchiveProject)
+    .action((ref) => {
+      if (!ref) {
+        unarchiveCmd.help()
+        return
+      }
+      return unarchiveProject(ref)
+    })
 }
