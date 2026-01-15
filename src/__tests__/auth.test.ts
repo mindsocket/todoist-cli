@@ -4,12 +4,19 @@ import { Command } from 'commander'
 // Mock the auth module
 vi.mock('../lib/auth.js', () => ({
   saveApiToken: vi.fn(),
+  clearApiToken: vi.fn(),
+}))
+
+// Mock the api module
+vi.mock('../lib/api.js', () => ({
+  getApi: vi.fn(),
 }))
 
 // Mock chalk to avoid colors in tests
 vi.mock('chalk', () => ({
   default: {
     green: vi.fn((text) => text),
+    yellow: vi.fn((text) => text),
     dim: vi.fn((text) => text),
   },
 }))
@@ -40,13 +47,16 @@ vi.mock('open', () => ({
   default: vi.fn(),
 }))
 
-import { saveApiToken } from '../lib/auth.js'
+import { saveApiToken, clearApiToken } from '../lib/auth.js'
+import { getApi } from '../lib/api.js'
 import { startCallbackServer } from '../lib/oauth-server.js'
 import { exchangeCodeForToken } from '../lib/oauth.js'
-import { registerLoginCommand } from '../commands/login.js'
+import { registerAuthCommand } from '../commands/auth.js'
 import open from 'open'
 
 const mockSaveApiToken = vi.mocked(saveApiToken)
+const mockClearApiToken = vi.mocked(clearApiToken)
+const mockGetApi = vi.mocked(getApi)
 const mockStartCallbackServer = vi.mocked(startCallbackServer)
 const mockExchangeCodeForToken = vi.mocked(exchangeCodeForToken)
 const mockOpen = vi.mocked(open)
@@ -54,11 +64,11 @@ const mockOpen = vi.mocked(open)
 function createProgram() {
   const program = new Command()
   program.exitOverride()
-  registerLoginCommand(program)
+  registerAuthCommand(program)
   return program
 }
 
-describe('login command', () => {
+describe('auth command', () => {
   let consoleSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
@@ -77,7 +87,7 @@ describe('login command', () => {
 
       mockSaveApiToken.mockResolvedValue(undefined)
 
-      await program.parseAsync(['node', 'td', 'login', 'token', token])
+      await program.parseAsync(['node', 'td', 'auth', 'token', token])
 
       expect(mockSaveApiToken).toHaveBeenCalledWith(token)
       expect(consoleSpy).toHaveBeenCalledWith(
@@ -96,7 +106,7 @@ describe('login command', () => {
       mockSaveApiToken.mockRejectedValue(new Error('Permission denied'))
 
       await expect(
-        program.parseAsync(['node', 'td', 'login', 'token', token])
+        program.parseAsync(['node', 'td', 'auth', 'token', token])
       ).rejects.toThrow('Permission denied')
 
       expect(mockSaveApiToken).toHaveBeenCalledWith(token)
@@ -112,7 +122,7 @@ describe('login command', () => {
       await program.parseAsync([
         'node',
         'td',
-        'login',
+        'auth',
         'token',
         tokenWithWhitespace,
       ])
@@ -121,7 +131,7 @@ describe('login command', () => {
     })
   })
 
-  describe('OAuth flow', () => {
+  describe('login subcommand (OAuth flow)', () => {
     it('completes OAuth flow successfully', async () => {
       const program = createProgram()
       const authCode = 'oauth_auth_code_123'
@@ -130,9 +140,9 @@ describe('login command', () => {
       mockStartCallbackServer.mockResolvedValue(authCode)
       mockExchangeCodeForToken.mockResolvedValue(accessToken)
       mockSaveApiToken.mockResolvedValue(undefined)
-      mockOpen.mockResolvedValue({} as any)
+      mockOpen.mockResolvedValue({} as ReturnType<typeof open>)
 
-      await program.parseAsync(['node', 'td', 'login'])
+      await program.parseAsync(['node', 'td', 'auth', 'login'])
 
       expect(mockOpen).toHaveBeenCalledWith(
         'https://todoist.com/oauth/authorize?test=1'
@@ -152,11 +162,11 @@ describe('login command', () => {
       mockStartCallbackServer.mockRejectedValue(
         new Error('OAuth callback timed out')
       )
-      mockOpen.mockResolvedValue({} as any)
+      mockOpen.mockResolvedValue({} as ReturnType<typeof open>)
 
-      await expect(program.parseAsync(['node', 'td', 'login'])).rejects.toThrow(
-        'OAuth callback timed out'
-      )
+      await expect(
+        program.parseAsync(['node', 'td', 'auth', 'login'])
+      ).rejects.toThrow('OAuth callback timed out')
 
       expect(mockSaveApiToken).not.toHaveBeenCalled()
     })
@@ -168,13 +178,54 @@ describe('login command', () => {
       mockExchangeCodeForToken.mockRejectedValue(
         new Error('Token exchange failed: 400')
       )
-      mockOpen.mockResolvedValue({} as any)
+      mockOpen.mockResolvedValue({} as ReturnType<typeof open>)
 
-      await expect(program.parseAsync(['node', 'td', 'login'])).rejects.toThrow(
-        'Token exchange failed'
-      )
+      await expect(
+        program.parseAsync(['node', 'td', 'auth', 'login'])
+      ).rejects.toThrow('Token exchange failed')
 
       expect(mockSaveApiToken).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('status subcommand', () => {
+    it('shows authenticated status when logged in', async () => {
+      const program = createProgram()
+      const mockUser = { email: 'test@example.com', fullName: 'Test User' }
+      const mockApi = { getUser: vi.fn().mockResolvedValue(mockUser) }
+      mockGetApi.mockResolvedValue(mockApi as ReturnType<typeof getApi>)
+
+      await program.parseAsync(['node', 'td', 'auth', 'status'])
+
+      expect(mockGetApi).toHaveBeenCalled()
+      expect(mockApi.getUser).toHaveBeenCalled()
+      expect(consoleSpy).toHaveBeenCalledWith('✓', 'Authenticated')
+      expect(consoleSpy).toHaveBeenCalledWith('  Email: test@example.com')
+      expect(consoleSpy).toHaveBeenCalledWith('  Name:  Test User')
+    })
+
+    it('shows not authenticated when no token', async () => {
+      const program = createProgram()
+      mockGetApi.mockRejectedValue(new Error('No API token found'))
+
+      await program.parseAsync(['node', 'td', 'auth', 'status'])
+
+      expect(consoleSpy).toHaveBeenCalledWith('Not authenticated')
+    })
+  })
+
+  describe('logout subcommand', () => {
+    it('clears the API token', async () => {
+      const program = createProgram()
+      mockClearApiToken.mockResolvedValue(undefined)
+
+      await program.parseAsync(['node', 'td', 'auth', 'logout'])
+
+      expect(mockClearApiToken).toHaveBeenCalled()
+      expect(consoleSpy).toHaveBeenCalledWith('✓', 'Logged out')
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Token removed from ~/.config/todoist-cli/config.json'
+      )
     })
   })
 })

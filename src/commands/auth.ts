@@ -1,5 +1,6 @@
 import { Command } from 'commander'
-import { saveApiToken } from '../lib/auth.js'
+import { saveApiToken, clearApiToken } from '../lib/auth.js'
+import { getApi } from '../lib/api.js'
 import {
   generateCodeVerifier,
   generateCodeChallenge,
@@ -39,14 +40,49 @@ async function loginWithOAuth(): Promise<void> {
   console.log(chalk.dim('Token saved to ~/.config/todoist-cli/config.json'))
 }
 
-export function registerLoginCommand(program: Command): void {
-  const login = program
+async function showStatus(): Promise<void> {
+  try {
+    const api = await getApi()
+    const user = await api.getUser()
+    console.log(chalk.green('✓'), 'Authenticated')
+    console.log(`  Email: ${user.email}`)
+    console.log(`  Name:  ${user.fullName}`)
+  } catch {
+    console.log(chalk.yellow('Not authenticated'))
+    console.log(
+      chalk.dim(
+        'Run `td auth login` or `td auth token <token>` to authenticate'
+      )
+    )
+  }
+}
+
+async function logout(): Promise<void> {
+  await clearApiToken()
+  console.log(chalk.green('✓'), 'Logged out')
+  console.log(chalk.dim('Token removed from ~/.config/todoist-cli/config.json'))
+}
+
+export function registerAuthCommand(program: Command): void {
+  const auth = program.command('auth').description('Manage authentication')
+
+  auth
     .command('login')
-    .description('Authenticate with Todoist')
+    .description('Authenticate with Todoist via OAuth')
     .action(loginWithOAuth)
 
-  login
+  auth
     .command('token <token>')
     .description('Save API token to config file (manual authentication)')
     .action(loginWithToken)
+
+  auth
+    .command('status')
+    .description('Show current authentication status')
+    .action(showStatus)
+
+  auth
+    .command('logout')
+    .description('Remove saved authentication token')
+    .action(logout)
 }

@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir } from 'fs/promises'
+import { readFile, writeFile, mkdir, unlink } from 'fs/promises'
 import { homedir } from 'os'
 import { join, dirname } from 'path'
 
@@ -58,4 +58,22 @@ export async function saveApiToken(token: string): Promise<void> {
 
   // Write config file with proper formatting
   await writeFile(CONFIG_PATH, JSON.stringify(newConfig, null, 2) + '\n')
+}
+
+export async function clearApiToken(): Promise<void> {
+  let config: Config = {}
+  try {
+    const content = await readFile(CONFIG_PATH, 'utf-8')
+    config = JSON.parse(content)
+  } catch {
+    return // Config doesn't exist, nothing to clear
+  }
+
+  delete config.api_token
+
+  if (Object.keys(config).length === 0) {
+    await unlink(CONFIG_PATH)
+  } else {
+    await writeFile(CONFIG_PATH, JSON.stringify(config, null, 2) + '\n')
+  }
 }

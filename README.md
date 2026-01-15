@@ -25,7 +25,7 @@ This makes the `td` command available globally.
 ## Setup
 
 ```bash
-td login
+td auth login
 ```
 
 This opens your browser to authenticate with Todoist. Once approved, the token is saved automatically.
@@ -35,13 +35,20 @@ This opens your browser to authenticate with Todoist. Once approved, the token i
 **Manual token:** Get your API token from [Todoist Settings > Integrations > Developer](https://todoist.com/app/settings/integrations/developer):
 
 ```bash
-td login token "your-token"
+td auth token "your-token"
 ```
 
 **Environment variable:**
 
 ```bash
 export TODOIST_API_TOKEN="your-token"
+```
+
+### Auth commands
+
+```bash
+td auth status   # check if authenticated
+td auth logout   # remove saved token
 ```
 
 ## Usage
