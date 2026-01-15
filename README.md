@@ -24,16 +24,16 @@ This makes the `td` command available globally.
 
 ## Setup
 
-Set your Todoist API token (get it from [Todoist Settings > Integrations > Developer](https://todoist.com/app/settings/integrations/developer)):
+Get your Todoist API token from [Todoist Settings > Integrations > Developer](https://todoist.com/app/settings/integrations/developer), then:
+
+```bash
+td login token "your-token"
+```
+
+Alternatively, set an environment variable:
 
 ```bash
 export TODOIST_API_TOKEN="your-token"
-```
-
-Or create `~/.config/todoist-cli/config.json`:
-
-```json
-{ "api_token": "your-token" }
 ```
 
 ## Usage
