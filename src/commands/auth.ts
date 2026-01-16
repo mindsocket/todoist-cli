@@ -1,6 +1,6 @@
 import { Command } from 'commander'
 import { saveApiToken, clearApiToken } from '../lib/auth.js'
-import { getApi } from '../lib/api.js'
+import { getApi } from '../lib/api/core.js'
 import {
   generateCodeVerifier,
   generateCodeChallenge,

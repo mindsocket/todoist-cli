@@ -1,12 +1,11 @@
 import { Command } from 'commander'
 import chalk from 'chalk'
+import { getApi, isWorkspaceProject } from '../lib/api/core.js'
 import {
-  getApi,
   fetchWorkspaces,
   fetchWorkspaceFolders,
-  isWorkspaceProject,
   type WorkspaceFolder,
-} from '../lib/api.js'
+} from '../lib/api/workspaces.js'
 import { resolveWorkspaceRef } from '../lib/refs.js'
 import { formatUserShortName } from '../lib/collaborators.js'
 import { paginate, LIMITS } from '../lib/pagination.js'

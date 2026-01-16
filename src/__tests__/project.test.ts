@@ -1,21 +1,30 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { Command } from 'commander'
 
-vi.mock('../lib/api.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../lib/api.js')>()
-  return {
-    ...actual,
-    getApi: vi.fn(),
-    fetchWorkspaces: vi.fn().mockResolvedValue([]),
-    fetchWorkspaceFolders: vi.fn().mockResolvedValue([]),
-  }
-})
+vi.mock('../lib/api/core.js', () => ({
+  getApi: vi.fn(),
+  isWorkspaceProject: vi.fn(
+    (project: { workspaceId?: string }) => project.workspaceId !== undefined
+  ),
+  isPersonalProject: vi.fn(
+    (project: { workspaceId?: string }) => project.workspaceId === undefined
+  ),
+}))
+
+vi.mock('../lib/api/workspaces.js', () => ({
+  fetchWorkspaces: vi.fn().mockResolvedValue([]),
+  fetchWorkspaceFolders: vi.fn().mockResolvedValue([]),
+}))
 
 vi.mock('../lib/browser.js', () => ({
   openInBrowser: vi.fn(),
 }))
 
-import { getApi, fetchWorkspaces, fetchWorkspaceFolders } from '../lib/api.js'
+import { getApi } from '../lib/api/core.js'
+import {
+  fetchWorkspaces,
+  fetchWorkspaceFolders,
+} from '../lib/api/workspaces.js'
 import { openInBrowser } from '../lib/browser.js'
 import { registerProjectCommand } from '../commands/project.js'
 

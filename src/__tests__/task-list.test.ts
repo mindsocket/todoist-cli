@@ -67,8 +67,11 @@ describe('listTasksForProject', () => {
 
     mockApi = createTestMockApi()
 
-    vi.doMock('../lib/api.js', () => ({
+    vi.doMock('../lib/api/core.js', () => ({
       getApi: vi.fn().mockResolvedValue(mockApi),
+      isWorkspaceProject: vi.fn(
+        (project: { workspaceId?: string }) => project.workspaceId !== undefined
+      ),
     }))
   })
 

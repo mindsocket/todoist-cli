@@ -4,7 +4,7 @@ import {
   isWorkspaceProject,
   type Project,
   type Section,
-} from './api.js'
+} from './api/core.js'
 import { resolveWorkspaceRef } from './refs.js'
 import {
   formatTaskRow,

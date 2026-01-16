@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Command } from 'commander'
 
-vi.mock('../lib/api.js', () => ({
+vi.mock('../lib/api/core.js', () => ({
   getApi: vi.fn(),
   completeTaskForever: vi.fn(),
 }))
@@ -10,7 +10,7 @@ vi.mock('../lib/browser.js', () => ({
   openInBrowser: vi.fn(),
 }))
 
-import { getApi, completeTaskForever } from '../lib/api.js'
+import { getApi, completeTaskForever } from '../lib/api/core.js'
 import { openInBrowser } from '../lib/browser.js'
 import { registerTaskCommand } from '../commands/task.js'
 

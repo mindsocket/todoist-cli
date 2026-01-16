@@ -1,5 +1,5 @@
 import { Command } from 'commander'
-import { getApi, completeTaskForever } from '../lib/api.js'
+import { getApi, completeTaskForever } from '../lib/api/core.js'
 import { openInBrowser } from '../lib/browser.js'
 import { parseDuration } from '../lib/duration.js'
 import { formatTaskView, formatError, formatJson } from '../lib/output.js'

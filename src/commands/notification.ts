@@ -6,9 +6,9 @@ import {
   markAllNotificationsRead,
   acceptInvitation,
   rejectInvitation,
-  Notification,
-  NotificationType,
-} from '../lib/api.js'
+  type Notification,
+  type NotificationType,
+} from '../lib/api/notifications.js'
 import {
   formatPaginatedJson,
   formatPaginatedNdjson,

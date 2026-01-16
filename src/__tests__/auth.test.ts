@@ -8,7 +8,7 @@ vi.mock('../lib/auth.js', () => ({
 }))
 
 // Mock the api module
-vi.mock('../lib/api.js', () => ({
+vi.mock('../lib/api/core.js', () => ({
   getApi: vi.fn(),
 }))
 
@@ -48,7 +48,7 @@ vi.mock('open', () => ({
 }))
 
 import { saveApiToken, clearApiToken } from '../lib/auth.js'
-import { getApi } from '../lib/api.js'
+import { getApi } from '../lib/api/core.js'
 import { startCallbackServer } from '../lib/oauth-server.js'
 import { exchangeCodeForToken } from '../lib/oauth.js'
 import { registerAuthCommand } from '../commands/auth.js'

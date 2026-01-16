@@ -1,5 +1,5 @@
 import { Command } from 'commander'
-import { getApi, getCurrentUserId, type Task } from '../lib/api.js'
+import { getApi, getCurrentUserId, type Task } from '../lib/api/core.js'
 import {
   formatTaskRow,
   formatPaginatedJson,

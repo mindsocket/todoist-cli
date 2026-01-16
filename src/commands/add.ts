@@ -1,5 +1,5 @@
 import { Command } from 'commander'
-import { getApi } from '../lib/api.js'
+import { getApi } from '../lib/api/core.js'
 import { formatDue } from '../lib/output.js'
 import { resolveAssigneeId } from '../lib/collaborators.js'
 import chalk from 'chalk'

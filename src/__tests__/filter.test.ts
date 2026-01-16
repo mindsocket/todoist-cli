@@ -1,21 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Command } from 'commander'
 
-vi.mock('../lib/api.js', () => ({
+vi.mock('../lib/api/core.js', () => ({
   getApi: vi.fn(),
+}))
+
+vi.mock('../lib/api/filters.js', () => ({
   fetchFilters: vi.fn(),
   addFilter: vi.fn(),
   updateFilter: vi.fn(),
   deleteFilter: vi.fn(),
 }))
 
+import { getApi } from '../lib/api/core.js'
 import {
-  getApi,
   fetchFilters,
   addFilter,
   updateFilter,
   deleteFilter,
-} from '../lib/api.js'
+} from '../lib/api/filters.js'
 import { registerFilterCommand } from '../commands/filter.js'
 
 const mockGetApi = vi.mocked(getApi)

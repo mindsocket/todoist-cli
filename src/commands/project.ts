@@ -1,13 +1,11 @@
 import { Command } from 'commander'
 import type { ProjectViewStyle } from '@doist/todoist-api-typescript'
+import { getApi, isWorkspaceProject, type Project } from '../lib/api/core.js'
 import {
-  getApi,
   fetchWorkspaces,
   fetchWorkspaceFolders,
-  isWorkspaceProject,
-  type Project,
   type Workspace,
-} from '../lib/api.js'
+} from '../lib/api/workspaces.js'
 import { openInBrowser } from '../lib/browser.js'
 import {
   formatPaginatedJson,

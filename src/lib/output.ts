@@ -1,6 +1,6 @@
 import chalk from 'chalk'
 import type { Task } from '@doist/todoist-api-typescript'
-import type { Project } from './api.js'
+import type { Project } from './api/core.js'
 import { formatDuration } from './duration.js'
 import { renderMarkdown } from './markdown.js'
 import {

@@ -2,9 +2,9 @@ import { Command } from 'commander'
 import {
   fetchProductivityStats,
   updateGoals,
-  ProductivityStats,
-  Streak,
-} from '../lib/api.js'
+  type ProductivityStats,
+  type Streak,
+} from '../lib/api/stats.js'
 import chalk from 'chalk'
 
 function formatTrend(trend: string): string {

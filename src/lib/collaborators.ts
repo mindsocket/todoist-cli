@@ -1,6 +1,10 @@
 import type { TodoistApi } from '@doist/todoist-api-typescript'
-import type { Task, Project } from './api.js'
-import { isWorkspaceProject, getCurrentUserId } from './api.js'
+import {
+  isWorkspaceProject,
+  getCurrentUserId,
+  type Task,
+  type Project,
+} from './api/core.js'
 import { isIdRef, extractId } from './refs.js'
 import { formatError } from './output.js'
 

@@ -1,7 +1,7 @@
 import { TodoistApi } from '@doist/todoist-api-typescript'
 import { formatError } from './output.js'
-import type { Task, Project, Section, Workspace } from './api.js'
-import { fetchWorkspaces } from './api.js'
+import type { Task, Project, Section } from './api/core.js'
+import { fetchWorkspaces, type Workspace } from './api/workspaces.js'
 
 export function isIdRef(ref: string): boolean {
   return ref.startsWith('id:')

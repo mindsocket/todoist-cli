@@ -1,5 +1,6 @@
 import { Command } from 'commander'
-import { getApi, uploadFile } from '../lib/api.js'
+import { getApi } from '../lib/api/core.js'
+import { uploadFile } from '../lib/api/uploads.js'
 import { openInBrowser } from '../lib/browser.js'
 import {
   formatPaginatedJson,

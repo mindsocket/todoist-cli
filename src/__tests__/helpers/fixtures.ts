@@ -1,5 +1,5 @@
 import type { Task, Label, Comment } from '@doist/todoist-api-typescript'
-import type { Project, Section } from '../../lib/api.js'
+import type { Project, Section } from '../../lib/api/core.js'
 
 const taskDefaults = {
   isUncompletable: false,

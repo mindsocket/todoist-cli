@@ -1,6 +1,6 @@
 import { Command } from 'commander'
+import { getApi } from '../lib/api/core.js'
 import {
-  getApi,
   getTaskReminders,
   addReminder as apiAddReminder,
   updateReminder as apiUpdateReminder,
@@ -8,7 +8,7 @@ import {
   fetchReminders,
   type Reminder,
   type ReminderDue,
-} from '../lib/api.js'
+} from '../lib/api/reminders.js'
 import {
   formatError,
   formatJson,

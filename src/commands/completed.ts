@@ -1,5 +1,5 @@
 import { Command } from 'commander'
-import { getApi, type Project } from '../lib/api.js'
+import { getApi, type Project } from '../lib/api/core.js'
 import {
   formatTaskRow,
   formatPaginatedJson,

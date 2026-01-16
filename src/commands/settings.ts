@@ -2,8 +2,8 @@ import { Command } from 'commander'
 import {
   fetchUserSettings,
   updateUserSettings,
-  UserSettings,
-} from '../lib/api.js'
+  type UserSettings,
+} from '../lib/api/user-settings.js'
 import { formatError } from '../lib/output.js'
 import chalk from 'chalk'
 

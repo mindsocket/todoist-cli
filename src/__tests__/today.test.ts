@@ -1,17 +1,20 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { Command } from 'commander'
 
-vi.mock('../lib/api.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../lib/api.js')>()
-  return {
-    ...actual,
-    getApi: vi.fn(),
-    getCurrentUserId: vi.fn().mockResolvedValue('current-user-123'),
-    fetchWorkspaces: vi.fn().mockResolvedValue([]),
-  }
-})
+vi.mock('../lib/api/core.js', () => ({
+  getApi: vi.fn(),
+  getCurrentUserId: vi.fn().mockResolvedValue('current-user-123'),
+  isWorkspaceProject: vi.fn(
+    (project: { workspaceId?: string }) => project.workspaceId !== undefined
+  ),
+}))
 
-import { getApi, fetchWorkspaces } from '../lib/api.js'
+vi.mock('../lib/api/workspaces.js', () => ({
+  fetchWorkspaces: vi.fn().mockResolvedValue([]),
+}))
+
+import { getApi } from '../lib/api/core.js'
+import { fetchWorkspaces } from '../lib/api/workspaces.js'
 import { registerTodayCommand } from '../commands/today.js'
 
 const mockGetApi = vi.mocked(getApi)

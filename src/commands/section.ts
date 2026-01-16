@@ -1,5 +1,5 @@
 import { Command } from 'commander'
-import { getApi } from '../lib/api.js'
+import { getApi } from '../lib/api/core.js'
 import { openInBrowser } from '../lib/browser.js'
 import {
   formatPaginatedJson,

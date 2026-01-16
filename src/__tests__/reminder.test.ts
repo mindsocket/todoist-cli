@@ -1,8 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Command } from 'commander'
 
-vi.mock('../lib/api.js', () => ({
+vi.mock('../lib/api/core.js', () => ({
   getApi: vi.fn(),
+}))
+
+vi.mock('../lib/api/reminders.js', () => ({
   getTaskReminders: vi.fn(),
   fetchReminders: vi.fn(),
   addReminder: vi.fn(),
@@ -10,14 +13,14 @@ vi.mock('../lib/api.js', () => ({
   deleteReminder: vi.fn(),
 }))
 
+import { getApi } from '../lib/api/core.js'
 import {
-  getApi,
   getTaskReminders,
   fetchReminders,
   addReminder,
   updateReminder,
   deleteReminder,
-} from '../lib/api.js'
+} from '../lib/api/reminders.js'
 import { registerReminderCommand } from '../commands/reminder.js'
 
 const mockGetApi = vi.mocked(getApi)

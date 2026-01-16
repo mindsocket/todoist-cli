@@ -1,8 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Command } from 'commander'
 
-vi.mock('../lib/api.js', () => ({
+vi.mock('../lib/api/core.js', () => ({
   getApi: vi.fn(),
+}))
+
+vi.mock('../lib/api/uploads.js', () => ({
   uploadFile: vi.fn().mockResolvedValue({
     resourceType: 'file',
     fileName: 'test.pdf',
@@ -13,7 +16,8 @@ vi.mock('../lib/api.js', () => ({
   }),
 }))
 
-import { getApi, uploadFile } from '../lib/api.js'
+import { getApi } from '../lib/api/core.js'
+import { uploadFile } from '../lib/api/uploads.js'
 import { registerCommentCommand } from '../commands/comment.js'
 
 const mockGetApi = vi.mocked(getApi)

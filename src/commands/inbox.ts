@@ -1,5 +1,5 @@
 import { Command } from 'commander'
-import { getApi } from '../lib/api.js'
+import { getApi } from '../lib/api/core.js'
 import { listTasksForProject, type TaskListOptions } from '../lib/task-list.js'
 
 export function registerInboxCommand(program: Command): void {

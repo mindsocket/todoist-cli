@@ -1,6 +1,10 @@
 import { Command } from 'commander'
-import { getApi, getCurrentUserId, type Project } from '../lib/api.js'
-import { isWorkspaceProject } from '../lib/api.js'
+import {
+  getApi,
+  getCurrentUserId,
+  isWorkspaceProject,
+  type Project,
+} from '../lib/api/core.js'
 import {
   formatPaginatedJson,
   formatPaginatedNdjson,

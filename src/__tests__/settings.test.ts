@@ -1,12 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Command } from 'commander'
 
-vi.mock('../lib/api.js', () => ({
+vi.mock('../lib/api/user-settings.js', () => ({
   fetchUserSettings: vi.fn(),
   updateUserSettings: vi.fn(),
 }))
 
-import { fetchUserSettings, updateUserSettings } from '../lib/api.js'
+import {
+  fetchUserSettings,
+  updateUserSettings,
+} from '../lib/api/user-settings.js'
 import { registerSettingsCommand } from '../commands/settings.js'
 
 const mockFetchUserSettings = vi.mocked(fetchUserSettings)

@@ -1,17 +1,23 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { Command } from 'commander'
 
-vi.mock('../lib/api.js', async () => {
-  const actual = await vi.importActual('../lib/api.js')
-  return {
-    ...actual,
-    getApi: vi.fn(),
-    fetchWorkspaces: vi.fn(),
-    fetchWorkspaceFolders: vi.fn(),
-  }
-})
+vi.mock('../lib/api/core.js', () => ({
+  getApi: vi.fn(),
+  isWorkspaceProject: vi.fn(
+    (project: { workspaceId?: string }) => project.workspaceId !== undefined
+  ),
+}))
 
-import { getApi, fetchWorkspaces, fetchWorkspaceFolders } from '../lib/api.js'
+vi.mock('../lib/api/workspaces.js', () => ({
+  fetchWorkspaces: vi.fn(),
+  fetchWorkspaceFolders: vi.fn(),
+}))
+
+import { getApi } from '../lib/api/core.js'
+import {
+  fetchWorkspaces,
+  fetchWorkspaceFolders,
+} from '../lib/api/workspaces.js'
 import { registerWorkspaceCommand } from '../commands/workspace.js'
 
 const mockGetApi = vi.mocked(getApi)

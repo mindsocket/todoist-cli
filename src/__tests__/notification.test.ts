@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Command } from 'commander'
 
-vi.mock('../lib/api.js', () => ({
+vi.mock('../lib/api/notifications.js', () => ({
   fetchNotifications: vi.fn(),
   markNotificationRead: vi.fn(),
   markNotificationUnread: vi.fn(),
@@ -17,7 +17,7 @@ import {
   markAllNotificationsRead,
   acceptInvitation,
   rejectInvitation,
-} from '../lib/api.js'
+} from '../lib/api/notifications.js'
 import { registerNotificationCommand } from '../commands/notification.js'
 
 const mockFetchNotifications = vi.mocked(fetchNotifications)

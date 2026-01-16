@@ -1,6 +1,6 @@
 import { Command } from 'commander'
 import type { Label } from '@doist/todoist-api-typescript'
-import { getApi } from '../lib/api.js'
+import { getApi } from '../lib/api/core.js'
 import { openInBrowser } from '../lib/browser.js'
 import {
   formatPaginatedJson,

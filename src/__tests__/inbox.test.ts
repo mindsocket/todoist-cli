@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { Command } from 'commander'
 
-vi.mock('../lib/api.js', () => ({
+vi.mock('../lib/api/core.js', () => ({
   getApi: vi.fn(),
   isWorkspaceProject: vi.fn().mockReturnValue(false),
 }))
 
-import { getApi } from '../lib/api.js'
+import { getApi } from '../lib/api/core.js'
 import { registerInboxCommand } from '../commands/inbox.js'
 
 const mockGetApi = vi.mocked(getApi)

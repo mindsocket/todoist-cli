@@ -1,13 +1,12 @@
 import { Command } from 'commander'
+import { getApi, type Project } from '../lib/api/core.js'
 import {
-  getApi,
   fetchFilters,
   addFilter,
   updateFilter,
   deleteFilter,
-  Filter,
-  Project,
-} from '../lib/api.js'
+  type Filter,
+} from '../lib/api/filters.js'
 import { openInBrowser } from '../lib/browser.js'
 import {
   formatPaginatedJson,
