@@ -5,3 +5,6 @@ node_modules
 *.ts
 *.js
 *.json
+
+# Release-please manages this file's formatting
+CHANGELOG.md
