@@ -34,7 +34,9 @@ export function formatPriority(priority: number): string {
 }
 
 export function formatDueDate(dateStr: string): string {
-    const date = new Date(`${dateStr}T00:00:00`)
+    // Extract just the date part (YYYY-MM-DD) in case dateStr contains a time
+    const dateOnly = dateStr.split('T')[0]
+    const date = new Date(`${dateOnly}T00:00:00`)
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 

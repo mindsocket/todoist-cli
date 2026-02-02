@@ -15,6 +15,7 @@ const mockGetApi = vi.mocked(getApi)
 function createMockApi() {
     return {
         getTasks: vi.fn().mockResolvedValue({ results: [], nextCursor: null }),
+        getTasksByFilter: vi.fn().mockResolvedValue({ results: [], nextCursor: null }),
         getProjects: vi.fn().mockResolvedValue({ results: [], nextCursor: null }),
     }
 }
@@ -50,19 +51,13 @@ describe('upcoming command', () => {
     it('defaults to 7 days', async () => {
         const program = createProgram()
 
-        mockApi.getTasks.mockResolvedValue({
+        mockApi.getTasksByFilter.mockResolvedValue({
             results: [
                 {
                     id: 'task-1',
                     content: 'Task in range',
                     projectId: 'proj-1',
                     due: { date: getDateOffset(3) },
-                },
-                {
-                    id: 'task-2',
-                    content: 'Task out of range',
-                    projectId: 'proj-1',
-                    due: { date: getDateOffset(10) },
                 },
             ],
             nextCursor: null,
@@ -81,19 +76,13 @@ describe('upcoming command', () => {
     it('accepts custom days argument', async () => {
         const program = createProgram()
 
-        mockApi.getTasks.mockResolvedValue({
+        mockApi.getTasksByFilter.mockResolvedValue({
             results: [
                 {
                     id: 'task-1',
                     content: 'Task day 2',
                     projectId: 'proj-1',
                     due: { date: getDateOffset(2) },
-                },
-                {
-                    id: 'task-2',
-                    content: 'Task day 5',
-                    projectId: 'proj-1',
-                    due: { date: getDateOffset(5) },
                 },
             ],
             nextCursor: null,
@@ -112,7 +101,7 @@ describe('upcoming command', () => {
     it('always includes overdue tasks', async () => {
         const program = createProgram()
 
-        mockApi.getTasks.mockResolvedValue({
+        mockApi.getTasksByFilter.mockResolvedValue({
             results: [
                 {
                     id: 'task-1',
@@ -137,7 +126,7 @@ describe('upcoming command', () => {
     it('shows Today header for today tasks', async () => {
         const program = createProgram()
 
-        mockApi.getTasks.mockResolvedValue({
+        mockApi.getTasksByFilter.mockResolvedValue({
             results: [
                 {
                     id: 'task-1',
@@ -161,7 +150,7 @@ describe('upcoming command', () => {
     it('shows Tomorrow header for tomorrow tasks', async () => {
         const program = createProgram()
 
-        mockApi.getTasks.mockResolvedValue({
+        mockApi.getTasksByFilter.mockResolvedValue({
             results: [
                 {
                     id: 'task-1',
@@ -185,7 +174,7 @@ describe('upcoming command', () => {
     it('shows empty message when no tasks', async () => {
         const program = createProgram()
 
-        mockApi.getTasks.mockResolvedValue({ results: [], nextCursor: null })
+        mockApi.getTasksByFilter.mockResolvedValue({ results: [], nextCursor: null })
         mockApi.getProjects.mockResolvedValue({ results: [], nextCursor: null })
 
         await program.parseAsync(['node', 'td', 'upcoming'])
@@ -196,7 +185,7 @@ describe('upcoming command', () => {
     it('shows singular "day" for 1 day', async () => {
         const program = createProgram()
 
-        mockApi.getTasks.mockResolvedValue({ results: [], nextCursor: null })
+        mockApi.getTasksByFilter.mockResolvedValue({ results: [], nextCursor: null })
         mockApi.getProjects.mockResolvedValue({ results: [], nextCursor: null })
 
         await program.parseAsync(['node', 'td', 'upcoming', '1'])
@@ -207,7 +196,7 @@ describe('upcoming command', () => {
     it('outputs JSON with --json flag', async () => {
         const program = createProgram()
 
-        mockApi.getTasks.mockResolvedValue({
+        mockApi.getTasksByFilter.mockResolvedValue({
             results: [
                 {
                     id: 'task-1',
@@ -230,7 +219,7 @@ describe('upcoming command', () => {
     it('outputs NDJSON with --ndjson flag', async () => {
         const program = createProgram()
 
-        mockApi.getTasks.mockResolvedValue({
+        mockApi.getTasksByFilter.mockResolvedValue({
             results: [
                 {
                     id: 'task-1',
@@ -258,7 +247,7 @@ describe('upcoming command', () => {
     it('groups tasks by date with counts', async () => {
         const program = createProgram()
 
-        mockApi.getTasks.mockResolvedValue({
+        mockApi.getTasksByFilter.mockResolvedValue({
             results: [
                 {
                     id: 'task-1',

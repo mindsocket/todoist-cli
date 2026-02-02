@@ -55,13 +55,17 @@ export function registerUpcomingCommand(program: Command): void {
                   ? parseInt(options.limit, 10)
                   : LIMITS.tasks
 
+            const today = getLocalDate(0)
+
             const { results: tasks, nextCursor } = await paginate(
-                (cursor, limit) => api.getTasks({ cursor: cursor ?? undefined, limit }),
+                (cursor, limit) =>
+                    api.getTasksByFilter({
+                        query: `due before: ${days} days`,
+                        cursor: cursor ?? undefined,
+                        limit,
+                    }),
                 { limit: targetLimit, startCursor: options.cursor },
             )
-
-            const today = getLocalDate(0)
-            const endDate = getLocalDate(days)
 
             let filteredTasks = tasks
             if (!options.anyAssignee) {
@@ -79,9 +83,7 @@ export function registerUpcomingCommand(program: Command): void {
             )
             filteredTasks = filterResult.tasks
 
-            const relevantTasks = filteredTasks.filter(
-                (t) => t.due && isDueBefore(t.due.date, endDate),
-            )
+            const relevantTasks = filteredTasks
 
             if (options.json) {
                 console.log(
