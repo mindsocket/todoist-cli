@@ -23,6 +23,7 @@ const mockFetchWorkspaces = vi.mocked(fetchWorkspaces)
 function createMockApi() {
     return {
         getTasks: vi.fn().mockResolvedValue({ results: [], nextCursor: null }),
+        getTasksByFilter: vi.fn().mockResolvedValue({ results: [], nextCursor: null }),
         getProjects: vi.fn().mockResolvedValue({ results: [], nextCursor: null }),
     }
 }
@@ -63,7 +64,7 @@ describe('today command', () => {
     it('shows overdue tasks in Overdue section', async () => {
         const program = createProgram()
 
-        mockApi.getTasks.mockResolvedValue({
+        mockApi.getTasksByFilter.mockResolvedValue({
             results: [
                 {
                     id: 'task-1',
@@ -88,7 +89,7 @@ describe('today command', () => {
     it('shows tasks due today in Today section', async () => {
         const program = createProgram()
 
-        mockApi.getTasks.mockResolvedValue({
+        mockApi.getTasksByFilter.mockResolvedValue({
             results: [
                 {
                     id: 'task-1',
@@ -113,7 +114,7 @@ describe('today command', () => {
     it('includes tasks with specific times in today section', async () => {
         const program = createProgram()
 
-        mockApi.getTasks.mockResolvedValue({
+        mockApi.getTasksByFilter.mockResolvedValue({
             results: [
                 {
                     id: 'task-1',
@@ -145,7 +146,7 @@ describe('today command', () => {
     it('shows "No tasks due today" when empty', async () => {
         const program = createProgram()
 
-        mockApi.getTasks.mockResolvedValue({ results: [], nextCursor: null })
+        mockApi.getTasksByFilter.mockResolvedValue({ results: [], nextCursor: null })
         mockApi.getProjects.mockResolvedValue({ results: [], nextCursor: null })
 
         await program.parseAsync(['node', 'td', 'today'])
@@ -156,7 +157,7 @@ describe('today command', () => {
     it('excludes tasks with future due dates', async () => {
         const program = createProgram()
 
-        mockApi.getTasks.mockResolvedValue({
+        mockApi.getTasksByFilter.mockResolvedValue({
             results: [
                 {
                     id: 'task-1',
@@ -177,7 +178,7 @@ describe('today command', () => {
     it('outputs JSON with --json flag', async () => {
         const program = createProgram()
 
-        mockApi.getTasks.mockResolvedValue({
+        mockApi.getTasksByFilter.mockResolvedValue({
             results: [
                 {
                     id: 'task-1',
@@ -200,7 +201,7 @@ describe('today command', () => {
     it('outputs NDJSON with --ndjson flag', async () => {
         const program = createProgram()
 
-        mockApi.getTasks.mockResolvedValue({
+        mockApi.getTasksByFilter.mockResolvedValue({
             results: [
                 {
                     id: 'task-1',
@@ -228,7 +229,7 @@ describe('today command', () => {
     it('includes project names in output', async () => {
         const program = createProgram()
 
-        mockApi.getTasks.mockResolvedValue({
+        mockApi.getTasksByFilter.mockResolvedValue({
             results: [
                 {
                     id: 'task-1',
@@ -252,7 +253,7 @@ describe('today command', () => {
     it('filters by --personal to show only personal project tasks', async () => {
         const program = createProgram()
 
-        mockApi.getTasks.mockResolvedValue({
+        mockApi.getTasksByFilter.mockResolvedValue({
             results: [
                 {
                     id: 'task-1',
@@ -286,7 +287,7 @@ describe('today command', () => {
     it('filters by --workspace to show only workspace tasks', async () => {
         const program = createProgram()
 
-        mockApi.getTasks.mockResolvedValue({
+        mockApi.getTasksByFilter.mockResolvedValue({
             results: [
                 {
                     id: 'task-1',
@@ -323,7 +324,7 @@ describe('today command', () => {
     it('throws error when both --workspace and --personal specified', async () => {
         const program = createProgram()
 
-        mockApi.getTasks.mockResolvedValue({ results: [], nextCursor: null })
+        mockApi.getTasksByFilter.mockResolvedValue({ results: [], nextCursor: null })
 
         await expect(
             program.parseAsync(['node', 'td', 'today', '--workspace', 'Acme', '--personal']),

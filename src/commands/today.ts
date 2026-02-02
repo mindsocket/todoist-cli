@@ -51,7 +51,12 @@ export function registerTodayCommand(program: Command): void {
                   : LIMITS.tasks
 
             const { results: tasks, nextCursor } = await paginate(
-                (cursor, limit) => api.getTasks({ cursor: cursor ?? undefined, limit }),
+                (cursor, limit) =>
+                    api.getTasksByFilter({
+                        query: 'today | overdue',
+                        cursor: cursor ?? undefined,
+                        limit,
+                    }),
                 { limit: targetLimit, startCursor: options.cursor },
             )
 
