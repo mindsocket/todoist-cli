@@ -36,7 +36,9 @@ export function formatDateHeader(dateStr: string, today: string): string {
     if (isDueOnDate(dateStr, today)) return 'Today'
     const tomorrow = getLocalDate(1)
     if (isDueOnDate(dateStr, tomorrow)) return 'Tomorrow'
-    const [year, month, day] = dateStr.split('-').map(Number)
+    // Extract just the date part (YYYY-MM-DD) in case dateStr contains a time
+    const dateOnly = dateStr.split('T')[0]
+    const [year, month, day] = dateOnly.split('-').map(Number)
     return new Date(year, month - 1, day).toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
